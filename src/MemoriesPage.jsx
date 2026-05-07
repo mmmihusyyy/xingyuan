@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 
 const SUPABASE_URL = "https://eptmebofhaldyfclzvap.supabase.co";
 const SUPABASE_KEY = "sb_publishable_exJEjaJTMYXHZjF41RTZzg_B0hIej70";
+const SESSION_KEY = "sb_session";
 
 const C = {
   bg: "#080c16",
@@ -20,6 +21,7 @@ const C = {
   pink: "rgba(220,140,160,0.85)",
   pinkDim: "rgba(220,140,160,0.4)",
   green: "rgba(120,200,120,0.85)",
+  red: "rgba(220,100,100,0.85)",
   textMain: "rgba(220,225,235,0.9)",
   textDim: "rgba(180,185,195,0.5)",
   textFaint: "rgba(150,155,165,0.3)",
@@ -35,6 +37,36 @@ const CATEGORIES = [
 
 const CATEGORY_MAP = Object.fromEntries(CATEGORIES.filter(c => c.key !== "all").map(c => [c.key, c]));
 
+/* ── Auth ── */
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (s.expires_at && s.expires_at * 1000 < Date.now()) {
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    return s;
+  } catch { return null; }
+}
+function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
+function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+async function authLogin(email, password) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error_description || err.msg || err.error || "登录失败");
+  }
+  return await res.json();
+}
+
+/* ── Data ── */
 async function loadMemories() {
   try {
     const res = await fetch(
@@ -46,36 +78,38 @@ async function loadMemories() {
   } catch { return []; }
 }
 
-async function addMemory(category, content) {
+async function addMemory(category, content, token) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/claude_memories`, {
     method: "POST",
     headers: {
-      apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
+      apikey: SUPABASE_KEY, Authorization: `Bearer ${token}`,
       "Content-Type": "application/json", Prefer: "return=representation",
     },
     body: JSON.stringify({ category, content }),
   });
-  if (!res.ok) throw new Error("Failed to save");
+  if (!res.ok) throw new Error("save_failed");
   const rows = await res.json();
   return rows[0];
 }
 
-async function deleteMemory(id) {
-  await fetch(`${SUPABASE_URL}/rest/v1/claude_memories?id=eq.${id}`, {
+async function deleteMemory(id, token) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/claude_memories?id=eq.${id}`, {
     method: "DELETE",
-    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` },
   });
+  if (!res.ok) throw new Error("delete_failed");
 }
 
-async function updateMemory(id, content) {
-  await fetch(`${SUPABASE_URL}/rest/v1/claude_memories?id=eq.${id}`, {
+async function updateMemory(id, content, token) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/claude_memories?id=eq.${id}`, {
     method: "PATCH",
     headers: {
-      apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
+      apikey: SUPABASE_KEY, Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ content, updated_at: new Date().toISOString() }),
   });
+  if (!res.ok) throw new Error("update_failed");
 }
 
 function formatTime(ts) {
@@ -85,6 +119,97 @@ function formatTime(ts) {
   const h = String(d.getHours()).padStart(2, "0");
   const min = String(d.getMinutes()).padStart(2, "0");
   return `${m}-${day} ${h}:${min}`;
+}
+
+const inputStyle = {
+  width: "100%",
+  padding: "8px 10px",
+  background: "rgba(255,255,255,0.04)",
+  border: `1px solid ${C.border}`,
+  borderRadius: "6px",
+  color: C.textMain,
+  fontSize: "13px",
+  fontFamily: "'Noto Sans SC', sans-serif",
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+function btnStyle(color) {
+  return {
+    background: "transparent",
+    border: "none",
+    color,
+    fontSize: "11px",
+    fontFamily: "'Noto Sans SC', sans-serif",
+    cursor: "pointer",
+    padding: "4px 8px",
+    borderRadius: "4px",
+  };
+}
+
+/* ── Login Form ── */
+function LoginForm({ onSuccess, onCancel }) {
+  const [email, setEmail] = useState("mmmihusyyy@gmail.com");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!email || !password || submitting) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const session = await authLogin(email, password);
+      saveSession(session);
+      onSuccess(session);
+    } catch (e) {
+      setError(e.message || "登录失败");
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <div style={{
+      background: "rgba(255,255,255,0.03)",
+      border: `1px solid ${C.border}`,
+      borderRadius: "10px",
+      padding: "12px",
+      marginBottom: "10px",
+      animation: "fadeIn 0.2s ease",
+    }}>
+      <div style={{ fontSize: "12px", color: C.textDim, marginBottom: "8px" }}>
+        写记忆需要先登录
+      </div>
+      <input
+        type="email"
+        placeholder="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        style={inputStyle}
+      />
+      <input
+        type="password"
+        placeholder="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+        style={{ ...inputStyle, marginTop: "6px" }}
+      />
+      {error && (
+        <div style={{ fontSize: "11px", color: C.red, marginTop: "6px" }}>{error}</div>
+      )}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px", marginTop: "8px" }}>
+        <button onClick={onCancel} style={btnStyle(C.textFaint)}>取消</button>
+        <button
+          onClick={handleSubmit}
+          disabled={!email || !password || submitting}
+          style={{ ...btnStyle(C.pink), opacity: (!email || !password || submitting) ? 0.5 : 1 }}
+        >
+          {submitting ? "登录中..." : "登录"}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 /* ── Memory Card ── */
@@ -111,7 +236,6 @@ function MemoryCard({ mem, onDelete, onUpdate }) {
       marginBottom: "8px",
       animation: "fadeIn 0.3s ease",
     }}>
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
         <span style={{ fontSize: "13px" }}>{cat.emoji}</span>
         <span style={{
@@ -127,7 +251,6 @@ function MemoryCard({ mem, onDelete, onUpdate }) {
         </span>
       </div>
 
-      {/* Content */}
       {editing ? (
         <div>
           <textarea
@@ -165,14 +288,13 @@ function MemoryCard({ mem, onDelete, onUpdate }) {
         </div>
       )}
 
-      {/* Actions */}
       {!editing && (
         <div style={{ display: "flex", gap: "8px", marginTop: "8px", justifyContent: "flex-end" }}>
           <button onClick={() => { setEditText(mem.content); setEditing(true); }} style={btnStyle(C.textFaint)}>
             编辑
           </button>
           {confirming ? (
-            <button onClick={() => { onDelete(mem.id); setConfirming(false); }} style={btnStyle("rgba(220,100,100,0.85)")}>
+            <button onClick={() => { onDelete(mem.id); setConfirming(false); }} style={btnStyle(C.red)}>
               确认删除？
             </button>
           ) : (
@@ -186,19 +308,6 @@ function MemoryCard({ mem, onDelete, onUpdate }) {
   );
 }
 
-function btnStyle(color) {
-  return {
-    background: "transparent",
-    border: "none",
-    color,
-    fontSize: "11px",
-    fontFamily: "'Noto Sans SC', sans-serif",
-    cursor: "pointer",
-    padding: "4px 8px",
-    borderRadius: "4px",
-  };
-}
-
 /* ── Main Page ── */
 export default function MemoriesPage() {
   const [memories, setMemories] = useState([]);
@@ -208,6 +317,8 @@ export default function MemoriesPage() {
   const [newContent, setNewContent] = useState("");
   const [newCategory, setNewCategory] = useState("about_dog");
   const [saving, setSaving] = useState(false);
+  const [session, setSession] = useState(null);
+  const [showLogin, setShowLogin] = useState(false);
 
   const refetch = async () => {
     const data = await loadMemories();
@@ -216,6 +327,7 @@ export default function MemoriesPage() {
   };
 
   useEffect(() => {
+    setSession(loadSession());
     refetch();
     const onVisible = () => {
       if (document.visibilityState === 'visible') refetch();
@@ -228,28 +340,66 @@ export default function MemoriesPage() {
     };
   }, []);
 
+  const handleLogout = () => {
+    clearSession();
+    setSession(null);
+  };
+
+  const handleLoginSuccess = (s) => {
+    setSession(s);
+    setShowLogin(false);
+  };
+
+  const handleSessionExpired = () => {
+    clearSession();
+    setSession(null);
+    setShowLogin(true);
+  };
+
   const filtered = filter === "all" ? memories : memories.filter((m) => m.category === filter);
 
+  const handleAddClick = () => {
+    if (!session) {
+      setShowLogin(true);
+      setShowAdd(false);
+      return;
+    }
+    if (!showAdd) refetch();
+    setShowAdd(!showAdd);
+  };
+
   const handleAdd = async () => {
-    if (!newContent.trim() || saving) return;
+    if (!newContent.trim() || saving || !session) return;
     setSaving(true);
     try {
-      const row = await addMemory(newCategory, newContent.trim());
+      const row = await addMemory(newCategory, newContent.trim(), session.access_token);
       setMemories([row, ...memories]);
       setNewContent("");
       setShowAdd(false);
-    } catch {}
+    } catch {
+      handleSessionExpired();
+    }
     setSaving(false);
   };
 
   const handleDelete = async (id) => {
-    await deleteMemory(id);
-    setMemories(memories.filter((m) => m.id !== id));
+    if (!session) { handleSessionExpired(); return; }
+    try {
+      await deleteMemory(id, session.access_token);
+      setMemories(memories.filter((m) => m.id !== id));
+    } catch {
+      handleSessionExpired();
+    }
   };
 
   const handleUpdate = async (id, content) => {
-    await updateMemory(id, content);
-    setMemories(memories.map((m) => m.id === id ? { ...m, content, updated_at: new Date().toISOString() } : m));
+    if (!session) { handleSessionExpired(); return; }
+    try {
+      await updateMemory(id, content, session.access_token);
+      setMemories(memories.map((m) => m.id === id ? { ...m, content, updated_at: new Date().toISOString() } : m));
+    } catch {
+      handleSessionExpired();
+    }
   };
 
   return (
@@ -265,10 +415,10 @@ export default function MemoriesPage() {
         @keyframes shimmer { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }
         * { box-sizing: border-box; }
         textarea::placeholder { color: rgba(150,155,165,0.35); }
+        input::placeholder { color: rgba(150,155,165,0.35); }
         body { margin: 0; }
       `}</style>
 
-      {/* Header */}
       <div style={{
         position: "sticky",
         top: 0,
@@ -290,8 +440,25 @@ export default function MemoriesPage() {
           }}>
             教授的记忆
           </h1>
+          {session && (
+            <button
+              onClick={handleLogout}
+              title={session.user?.email || "logged in"}
+              style={{
+                background: "rgba(120,200,120,0.08)",
+                border: `1px solid rgba(120,200,120,0.25)`,
+                borderRadius: "8px",
+                color: C.green,
+                fontSize: "11px",
+                fontFamily: "monospace",
+                padding: "5px 9px",
+                cursor: "pointer",
+                marginRight: "4px",
+              }}
+            >●</button>
+          )}
           <button
-            onClick={() => { if (!showAdd) refetch(); setShowAdd(!showAdd); }}
+            onClick={handleAddClick}
             style={{
               background: showAdd ? "rgba(220,140,160,0.15)" : "rgba(255,255,255,0.04)",
               border: `1px solid ${showAdd ? C.pinkDim : C.border}`,
@@ -308,8 +475,11 @@ export default function MemoriesPage() {
           </button>
         </div>
 
-        {/* Add form */}
-        {showAdd && (
+        {showLogin && (
+          <LoginForm onSuccess={handleLoginSuccess} onCancel={() => setShowLogin(false)} />
+        )}
+
+        {showAdd && session && (
           <div style={{
             background: "rgba(255,255,255,0.03)",
             border: `1px solid ${C.border}`,
@@ -318,7 +488,6 @@ export default function MemoriesPage() {
             marginBottom: "10px",
             animation: "fadeIn 0.2s ease",
           }}>
-            {/* Category selector */}
             <div style={{ display: "flex", gap: "4px", marginBottom: "8px", flexWrap: "wrap" }}>
               {CATEGORIES.filter(c => c.key !== "all").map(({ key, label, emoji }) => (
                 <button
@@ -380,7 +549,6 @@ export default function MemoriesPage() {
           </div>
         )}
 
-        {/* Filter tabs */}
         <div style={{ display: "flex", gap: "4px", overflowX: "auto" }}>
           {CATEGORIES.map(({ key, label, emoji }) => {
             const count = key === "all" ? memories.length : memories.filter(m => m.category === key).length;
@@ -409,7 +577,6 @@ export default function MemoriesPage() {
         </div>
       </div>
 
-      {/* Content */}
       <div style={{ padding: "16px", maxWidth: "600px", margin: "0 auto" }}>
         {loading ? (
           <div style={{ textAlign: "center", padding: "60px 0" }}>
