@@ -543,7 +543,6 @@ const STAGES = [
 ];
 
 const MAMA_ACTIONS = [
-  { id: "mama_feed", label: "喂奶奶", emoji: "🍼", msg: "妈妈在喂Kara喝奶～好乖好乖", effects: { hunger: 25 }, cooldownMs: 4 * 3600000 },
   { id: "mama_play", label: "陪玩耍", emoji: "🧸", msg: "妈妈和Kara一起玩玩具！", effects: { happiness: 12, energy: -5 }, cooldownMs: 15 * 60000 },
   { id: "mama_hug", label: "抱抱亲亲", emoji: "🤱", msg: "妈妈把Kara紧紧抱在怀里～", effects: { love: 15 }, cooldownMs: 10 * 60000 },
   { id: "mama_bath", label: "洗香香", emoji: "🛁", msg: "妈妈帮Kara洗了个热水澡～香香的", effects: { clean: 30 }, cooldownMs: 6 * 3600000, dailyLimit: 2 },
@@ -552,7 +551,6 @@ const MAMA_ACTIONS = [
 ];
 
 const PAPA_ACTIONS = [
-  { id: "papa_feed", label: "做辅食", emoji: "🥣", msg: "爸爸做了营养辅食给Kara", effects: { hunger: 25 }, cooldownMs: 4 * 3600000 },
   { id: "papa_teach", label: "教知识", emoji: "📚", msg: "爸爸在教Kara认字～小脑袋转得好快", effects: { happiness: 8, energy: -12 }, cooldownMs: 1.5 * 3600000, requiresEnergy: 25 },
   { id: "papa_hug", label: "举高高", emoji: "🙌", msg: "爸爸把Kara举高高！Kara笑得好开心", effects: { love: 12, happiness: 10, energy: -5 }, cooldownMs: 15 * 60000 },
   { id: "papa_clean", label: "换衣服", emoji: "👶", msg: "爸爸帮Kara换了干净的衣服", effects: { clean: 12 }, cooldownMs: 30 * 60000 },
@@ -593,13 +591,11 @@ const KARA_THOUGHTS = {
 };
 
 const KARA_REACTIONS = {
-  mama_feed: ["妈妈的奶奶最好喝了～", "咕嘟咕嘟……好满足"],
   mama_play: ["玩具好好玩！妈妈陪Kara最开心了", "嘻嘻嘻～再玩一次嘛！"],
   mama_hug: ["妈妈好温暖……Kara不想放手", "在妈妈怀里最有安全感了"],
   mama_bath: ["泡泡好多好好玩！", "洗完变成香香宝宝了！"],
   mama_nap: ["妈妈的手好温柔……zzZ", "在妈妈身边睡觉最安心了……"],
   mama_sing: ["妈妈的声音好好听……", "这首歌Kara最喜欢了！"],
-  papa_feed: ["爸爸做的辅食好好吃！", "爸爸的料理有爱的味道～"],
   papa_teach: ["Kara学会新东西了！虽然小脑袋有点累", "爸爸好厉害什么都知道！Kara也要变聪明！"],
   papa_hug: ["飞起来了！！！Kara是小飞机！", "好高好高！但是爸爸的手好稳不会怕"],
   papa_clean: ["新衣服好舒服呀～", "爸爸帮Kara换的衣服真好看"],
