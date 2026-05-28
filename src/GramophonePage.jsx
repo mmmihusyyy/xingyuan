@@ -82,7 +82,7 @@ function GramophoneCard({ record }) {
   const [photoError, setPhotoError] = useState(false);
   const d = formatDateParts(record.anchor_date);
   const session = loadSession();
-  const locked = !!record.is_private && !session;
+  const locked = !!record.photo_path && !!record.is_private && !session;
   const shouldSign = !!record.photo_path && !locked;
 
   useEffect(() => {
