@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 /* ═══════════════════════════════════════════
    教授的记忆库 · Claude Memories
@@ -217,7 +217,17 @@ function MemoryCard({ mem, onDelete, onUpdate }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(mem.content);
   const [confirming, setConfirming] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+  const contentRef = useRef(null);
   const cat = CATEGORY_MAP[mem.category] || CATEGORY_MAP.general;
+
+  useEffect(() => {
+    if (editing || expanded) return;
+    const el = contentRef.current;
+    if (!el) return;
+    setOverflowing(el.scrollHeight > el.clientHeight + 1);
+  }, [mem.content, editing, expanded]);
 
   const handleSave = async () => {
     if (editText.trim() && editText !== mem.content) {
@@ -277,31 +287,54 @@ function MemoryCard({ mem, onDelete, onUpdate }) {
           </div>
         </div>
       ) : (
-        <div style={{
-          fontSize: "13px",
-          lineHeight: 1.8,
-          color: C.textDim,
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-        }}>
+        <div
+          ref={contentRef}
+          style={{
+            fontSize: "13px",
+            lineHeight: 1.8,
+            color: C.textDim,
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            ...(expanded ? {} : {
+              display: "-webkit-box",
+              WebkitLineClamp: 4,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }),
+          }}
+        >
           {mem.content}
         </div>
       )}
 
       {!editing && (
-        <div style={{ display: "flex", gap: "8px", marginTop: "8px", justifyContent: "flex-end" }}>
-          <button onClick={() => { setEditText(mem.content); setEditing(true); }} style={btnStyle(C.textFaint)}>
-            编辑
-          </button>
-          {confirming ? (
-            <button onClick={() => { onDelete(mem.id); setConfirming(false); }} style={btnStyle(C.red)}>
-              确认删除？
+        <div style={{ display: "flex", gap: "8px", marginTop: "8px", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            {overflowing && !expanded && (
+              <button onClick={() => setExpanded(true)} style={btnStyle(C.gold)}>
+                显示全文
+              </button>
+            )}
+            {expanded && (
+              <button onClick={() => setExpanded(false)} style={btnStyle(C.textFaint)}>
+                收起
+              </button>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button onClick={() => { setEditText(mem.content); setEditing(true); }} style={btnStyle(C.textFaint)}>
+              编辑
             </button>
-          ) : (
-            <button onClick={() => setConfirming(true)} style={btnStyle(C.textFaint)}>
-              删除
-            </button>
-          )}
+            {confirming ? (
+              <button onClick={() => { onDelete(mem.id); setConfirming(false); }} style={btnStyle(C.red)}>
+                确认删除？
+              </button>
+            ) : (
+              <button onClick={() => setConfirming(true)} style={btnStyle(C.textFaint)}>
+                删除
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
