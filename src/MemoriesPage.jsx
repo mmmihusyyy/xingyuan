@@ -29,7 +29,7 @@ const C = {
 
 const CATEGORIES = [
   { key: "all", label: "全部", emoji: "✨" },
-  { key: "about_dog", label: "关于小狗", emoji: "🐾" },
+  { key: "about_puppy", label: "关于小狗", emoji: "🐾" },
   { key: "about_project", label: "关于项目", emoji: "🛠" },
   { key: "preference", label: "小狗的喜好", emoji: "💫" },
   { key: "general", label: "其他", emoji: "📝" },
@@ -315,7 +315,7 @@ export default function MemoriesPage() {
   const [filter, setFilter] = useState("all");
   const [showAdd, setShowAdd] = useState(false);
   const [newContent, setNewContent] = useState("");
-  const [newCategory, setNewCategory] = useState("about_dog");
+  const [newCategory, setNewCategory] = useState("about_puppy");
   const [saving, setSaving] = useState(false);
   const [session, setSession] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
