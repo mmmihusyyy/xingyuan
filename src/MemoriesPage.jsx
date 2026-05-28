@@ -880,15 +880,25 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 /* Glitch */
 .glitch{position:relative;display:inline-block}
 .glitch::before,.glitch::after{
-  content:attr(data-t);position:absolute;left:0;top:0;width:100%;background:inherit;
+  content:attr(data-t);position:absolute;left:0;top:0;width:100%;background:inherit;pointer-events:none;
 }
-.glitch::before{color:var(--mg);transform:translate(-2px,0);mix-blend-mode:screen;opacity:.45;clip-path:polygon(0 0,100% 0,100% 30%,0 30%);animation:glitch-anim 4s infinite steps(2)}
-.glitch::after{color:var(--cy);transform:translate(2px,0);mix-blend-mode:screen;opacity:.45;clip-path:polygon(0 65%,100% 65%,100% 100%,0 100%);animation:glitch-anim 3.6s infinite steps(2) reverse}
-@keyframes glitch-anim{
-  0%,92%,100%{transform:translate(0,0)}
-  94%{transform:translate(-2px,1px)}
-  96%{transform:translate(3px,-1px)}
-  98%{transform:translate(-1px,2px)}
+.glitch::before{color:var(--mg);mix-blend-mode:screen;opacity:.7;clip-path:polygon(0 0,100% 0,100% 38%,0 38%);animation:glitch-before 4s infinite steps(2)}
+.glitch::after{color:var(--cy);mix-blend-mode:screen;opacity:.7;clip-path:polygon(0 60%,100% 60%,100% 100%,0 100%);animation:glitch-after 3.6s infinite steps(2)}
+@keyframes glitch-before{
+  0%,88%,100%{transform:translate(-2px,0)}
+  90%{transform:translate(-5px,1px)}
+  92%{transform:translate(1px,-1px)}
+  94%{transform:translate(-4px,2px)}
+  96%{transform:translate(-1px,-1px)}
+  98%{transform:translate(-3px,1px)}
+}
+@keyframes glitch-after{
+  0%,88%,100%{transform:translate(2px,0)}
+  90%{transform:translate(5px,-1px)}
+  92%{transform:translate(-1px,1px)}
+  94%{transform:translate(4px,-2px)}
+  96%{transform:translate(1px,1px)}
+  98%{transform:translate(3px,-1px)}
 }
 .memory-shell[data-intensity="calm"] .glitch::before,
 .memory-shell[data-intensity="calm"] .glitch::after{display:none}
