@@ -440,6 +440,23 @@ export default function MemoriesPage() {
           }}>
             教授的记忆
           </h1>
+          <a
+            href="#/gramophone"
+            title="留声机 Gramophone"
+            style={{
+              fontSize: "11px",
+              letterSpacing: "1.5px",
+              color: C.gold,
+              opacity: 0.75,
+              textDecoration: "none",
+              fontFamily: "'Noto Sans SC', sans-serif",
+              padding: "5px 10px",
+              borderRadius: "999px",
+              border: `1px solid ${C.goldDim}`,
+              background: "rgba(200,170,120,0.06)",
+              marginRight: "4px",
+            }}
+          >♪ 留声机</a>
           {session && (
             <button
               onClick={handleLogout}
