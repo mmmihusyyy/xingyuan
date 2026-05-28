@@ -381,8 +381,6 @@ export default function MemoriesPage() {
           <span><b>NET.LINK</b> ONLINE</span>
           <span className="pipe">│</span>
           <span><b>NODE</b> memory.starwell.space</span>
-          <span className="pipe">│</span>
-          <span><b>VER</b> 2.6.28</span>
         </div>
         <div className="right">
           <Clock />
@@ -393,20 +391,18 @@ export default function MemoriesPage() {
 
       {/* Side rail */}
       <aside className="rail">
-        <span>00</span>
         <span className="hi">01 · ARCHIVE</span>
-        <span>02 · GRAMOPHONE</span>
-        <span>03 · LATTICE</span>
-        <span>04 · NULL</span>
-        <span>05 · NULL</span>
+        <a href="#/gramophone" style={{ color: "inherit", textDecoration: "none", pointerEvents: "auto" }}>
+          <span>02 · GRAMOPHONE</span>
+        </a>
       </aside>
-      <div className="vrt">STELLAR · ABYSS · MEMORY · ARCHIVE · 星渊 · 0451</div>
+      <div className="vrt">STELLAR · ABYSS · MEMORY · ARCHIVE · 星渊</div>
 
       <main className="page">
         {/* Header */}
         <div className="head">
           <div className="brand">
-            <div className="kicker">// MEMORY.STARWELL.SPACE · v2.6.28 · 星渊记忆库</div>
+            <div className="kicker">// MEMORY.STARWELL.SPACE · 星渊记忆库</div>
             <h1>
               <span className="glitch" data-t="Only">Only</span>
               <span className="accent">Node</span>
