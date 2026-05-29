@@ -100,20 +100,31 @@ async function signPhoto(path) {
   } catch { return null; }
 }
 
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const r = reader.result || "";
+      const idx = typeof r === "string" ? r.indexOf(",") : -1;
+      resolve(idx >= 0 ? r.slice(idx + 1) : r);
+    };
+    reader.onerror = () => reject(reader.error || new Error("file_read_failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
 async function uploadPhoto(file, token) {
-  const safeExt = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-  const ts = Date.now();
-  const rand = Math.random().toString(36).slice(2, 8);
-  const path = `gramophone/${ts}-${rand}.${safeExt || "jpg"}`;
-  const url = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`;
+  const content_base64 = await fileToBase64(file);
+  const mime_type = file.type || "application/octet-stream";
+  const filename = file.name || "upload";
+  const url = `${API_BASE}/api/uploads`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
-      apikey: SUPABASE_KEY, Authorization: `Bearer ${token}`,
-      "Content-Type": file.type || "application/octet-stream",
-      "x-upsert": "true",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
     },
-    body: file,
+    body: JSON.stringify({ content_base64, mime_type, filename }),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -123,10 +134,12 @@ async function uploadPhoto(file, token) {
       msg = j.message || j.error || msg;
     } catch {}
     // eslint-disable-next-line no-console
-    console.error("[gramophone uploadPhoto]", { status: res.status, url, path, body: text });
+    console.error("[gramophone uploadPhoto]", { status: res.status, url, body: text });
     throw new Error(msg);
   }
-  return path;
+  const json = await res.json();
+  if (!json.path) throw new Error("upload_response_missing_path");
+  return json.path;
 }
 
 /* ── Format helpers ── */
