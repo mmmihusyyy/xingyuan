@@ -223,7 +223,7 @@ function LoginForm({ onSuccess, onCancel }) {
 }
 
 /* ── Polaroid photo slot ── */
-function Polaroid({ record, canEdit, onUploaded }) {
+function Polaroid({ record, canEdit, onUploaded, onLoginRequest }) {
   const [photoUrl, setPhotoUrl] = useState(null);
   const [photoError, setPhotoError] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -274,15 +274,20 @@ function Polaroid({ record, canEdit, onUploaded }) {
   };
 
   const empty = !record.photo_path;
-  const showPicker = canEdit && (empty || photoError);
+
+  const handleSlotClick = () => {
+    if (uploading) return;
+    if (!canEdit) { onLoginRequest?.(); return; }
+    fileRef.current?.click();
+  };
 
   return (
     <div className="pola">
       <span className="pcrn tl"></span><span className="pcrn tr"></span>
       <span className="pcrn bl"></span><span className="pcrn br"></span>
       <div
-        className={`pslot ${dragOver ? "drag" : ""} ${canEdit ? "edit" : ""}`}
-        onClick={() => { if (canEdit && !uploading) fileRef.current?.click(); }}
+        className={`pslot ${dragOver ? "drag" : ""} edit`}
+        onClick={handleSlotClick}
         onDragOver={(e) => { if (canEdit) { e.preventDefault(); setDragOver(true); } }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
@@ -298,13 +303,13 @@ function Polaroid({ record, canEdit, onUploaded }) {
           <img src={photoUrl} alt="" onError={() => setPhotoError(true)} />
         ) : empty || photoError ? (
           <div className="pslot-state">
-            <span className="lk">{canEdit ? "+" : "◌"}</span>
-            <span className="lk-l">{canEdit ? "DROP IMAGE / 拖一张照片" : "NO PHOTO"}</span>
+            <span className="lk">{canEdit ? "+" : "🔑"}</span>
+            <span className="lk-l">{canEdit ? "DROP IMAGE / 拖一张照片" : "登录后可上传 · SIGN IN"}</span>
           </div>
         ) : (
           <div className="pslot-state"><span className="lk">⟳</span><span className="lk-l">LOADING…</span></div>
         )}
-        {showPicker && (
+        {canEdit && (
           <input
             ref={fileRef}
             type="file"
@@ -324,7 +329,7 @@ function Polaroid({ record, canEdit, onUploaded }) {
 }
 
 /* ── Gramophone Card ── */
-function GramophoneCard({ record, canEdit, onPatch, onDelete }) {
+function GramophoneCard({ record, canEdit, onPatch, onDelete, onLoginRequest }) {
   const [editing, setEditing] = useState(false);
   const [editSummary, setEditSummary] = useState(record.summary || "");
   const [editChord, setEditChord] = useState(record.chord || "");
@@ -453,7 +458,12 @@ function GramophoneCard({ record, canEdit, onPatch, onDelete }) {
         )}
       </div>
 
-      <Polaroid record={record} canEdit={canEdit && !editing} onUploaded={(patched) => onPatch(record.id, { photo_path: patched.photo_path }, true)} />
+      <Polaroid
+        record={record}
+        canEdit={canEdit && !editing}
+        onUploaded={(patched) => onPatch(record.id, { photo_path: patched.photo_path }, true)}
+        onLoginRequest={onLoginRequest}
+      />
     </article>
   );
 }
@@ -728,6 +738,7 @@ export default function GramophonePage() {
                     canEdit={!!session}
                     onPatch={handlePatch}
                     onDelete={handleDelete}
+                    onLoginRequest={() => setShowLogin(true)}
                   />
                 ))}
               </div>
