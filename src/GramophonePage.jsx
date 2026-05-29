@@ -105,7 +105,8 @@ async function uploadPhoto(file, token) {
   const ts = Date.now();
   const rand = Math.random().toString(36).slice(2, 8);
   const path = `gramophone/${ts}-${rand}.${safeExt || "jpg"}`;
-  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
+  const url = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`;
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       apikey: SUPABASE_KEY, Authorization: `Bearer ${token}`,
@@ -115,8 +116,15 @@ async function uploadPhoto(file, token) {
     body: file,
   });
   if (!res.ok) {
-    const t = await res.text().catch(() => "");
-    throw new Error(t || "upload_failed");
+    const text = await res.text().catch(() => "");
+    let msg = text || `HTTP ${res.status}`;
+    try {
+      const j = JSON.parse(text);
+      msg = j.message || j.error || msg;
+    } catch {}
+    // eslint-disable-next-line no-console
+    console.error("[gramophone uploadPhoto]", { status: res.status, url, path, body: text });
+    throw new Error(msg);
   }
   return path;
 }
@@ -260,7 +268,9 @@ function Polaroid({ record, canEdit, onUploaded, onLoginRequest }) {
       const patched = await patchRecord(record.id, { photo_path: path }, session.access_token);
       onUploaded(patched);
     } catch (e) {
-      setErr((e.message || "UPLOAD.FAILED").slice(0, 60));
+      // eslint-disable-next-line no-console
+      console.error("[gramophone doUpload]", { user_id: session?.user?.id, err: e.message });
+      setErr((e.message || "UPLOAD.FAILED").slice(0, 200));
     }
     setUploading(false);
   };
@@ -961,7 +971,7 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .pslot-state{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px;color:var(--ink-faint);text-align:center}
 .pslot-state .lk{font-size:26px;opacity:.7;color:var(--mg)}
 .pslot-state .lk-l{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.2em}
-.pslot-err{position:absolute;left:10px;right:10px;top:-14px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--rose);letter-spacing:.18em}
+.pslot-err{margin-top:6px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--rose);letter-spacing:.12em;line-height:1.5;word-break:break-word}
 .plabel{position:absolute;left:10px;right:10px;bottom:6px;display:flex;justify-content:space-between;align-items:center;
   font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.22em;color:var(--ink-faint)}
 .plabel .ph{color:var(--mg);text-shadow:0 0 6px rgba(255,62,165,.4)}
