@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { playProgression, stopProgression, isSupported as audioSupported } from "./chordAudio";
 
 /* ═══════════════════════════════════════════
    留声机 // GRAMOPHONE · Only Node subsystem 02
@@ -96,7 +97,7 @@ async function signPhoto(path) {
     );
     if (!res.ok) return null;
     const json = await res.json();
-    return json.url || json.signedURL || json.signedUrl || null;
+    return json.signed_url || json.signedUrl || json.url || null;
   } catch { return null; }
 }
 
@@ -360,10 +361,21 @@ function GramophoneCard({ record, canEdit, onPatch, onDelete, onLoginRequest }) 
   const [editPrivate, setEditPrivate] = useState(!!record.is_private);
   const [savingEdit, setSavingEdit] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [playing, setPlaying] = useState(false);
 
   const d = parseAnchorDate(record.anchor_date);
   const parsedChord = useMemo(() => parseChord(record.chord), [record.chord]);
   const recCode = `${pad(d.d)}${pad(d.m)}${d.yr2}`;
+
+  // 播放/停止这一天的和弦（chord 是只读源，只发声不改动）
+  const canPlay = audioSupported() && parsedChord.chords.length > 0;
+  const togglePlay = () => {
+    if (playing) { stopProgression(); setPlaying(false); return; }
+    if (playProgression(parsedChord.chords, parsedChord.bpm, { onEnded: () => setPlaying(false) })) setPlaying(true);
+  };
+  const playingRef = useRef(false);
+  playingRef.current = playing;
+  useEffect(() => () => { if (playingRef.current) stopProgression(); }, []);
 
   const handleSaveEdit = async () => {
     const session = loadSession();
@@ -441,7 +453,16 @@ function GramophoneCard({ record, canEdit, onPatch, onDelete, onLoginRequest }) 
 
             {(parsedChord.chords.length > 0 || parsedChord.bpm) && (
               <div className="tape">
-                <span className="note-glyph">♪</span>
+                <button
+                  type="button"
+                  className={`note-glyph play${playing ? " playing" : ""}`}
+                  onClick={togglePlay}
+                  disabled={!canPlay}
+                  title={playing ? "停止 · STOP" : "播放这一天 · PLAY"}
+                  style={{ background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", cursor: canPlay ? "pointer" : "default" }}
+                >
+                  {playing ? "◼" : "♪"}
+                </button>
                 <span className="chords">
                   {parsedChord.chords.map((c, i) => (
                     <span key={i}>
