@@ -204,6 +204,37 @@ function Wave() {
   );
 }
 
+/* ── Big EQ wave (turntable hero) ── */
+function BigWave({ n = 42 }) {
+  const bars = useMemo(() => Array.from({ length: n }, (_, i) =>
+    Math.min(100, 18 + Math.abs(Math.sin(i * 0.7)) * 82)
+  ), [n]);
+  return (
+    <span className="bigwave">
+      {bars.map((h, i) => <i key={i} style={{ height: `${h}%` }} />)}
+    </span>
+  );
+}
+
+/* ── Drifting dust motes (living background) ── */
+function Dust() {
+  const motes = Array.from({ length: 26 }, (_, i) => {
+    const dur = 14 + ((i * 1.7) % 16);
+    return (
+      <i
+        key={i}
+        style={{
+          left: `${(i * 37) % 100}%`,
+          animationDuration: `${dur}s`,
+          animationDelay: `${-((i * 1.3) % dur)}s`,
+          transform: `scale(${0.6 + (i % 4) * 0.5})`,
+        }}
+      />
+    );
+  });
+  return <div className="dust">{motes}</div>;
+}
+
 /* ── Login Form ── */
 function LoginForm({ onSuccess, onCancel }) {
   const [email, setEmail] = useState("mmmihusyyy@gmail.com");
@@ -244,8 +275,8 @@ function LoginForm({ onSuccess, onCancel }) {
   );
 }
 
-/* ── Polaroid photo slot ── */
-function Polaroid({ record, canEdit, onUploaded, onLoginRequest }) {
+/* ── Vinyl disc photo slot (photo spins WITH the record) ── */
+function Vinyl({ record, canEdit, onUploaded, onLoginRequest }) {
   const [photoUrl, setPhotoUrl] = useState(null);
   const [photoError, setPhotoError] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -306,33 +337,32 @@ function Polaroid({ record, canEdit, onUploaded, onLoginRequest }) {
   };
 
   return (
-    <div className="pola">
-      <span className="pcrn tl"></span><span className="pcrn tr"></span>
-      <span className="pcrn bl"></span><span className="pcrn br"></span>
+    <div className="vinyl">
       <div
-        className={`pslot ${dragOver ? "drag" : ""} edit`}
+        className={`disc ${dragOver ? "drag" : ""} ${canEdit ? "edit" : ""} ${photoUrl ? "has-photo" : ""}`}
         onClick={handleSlotClick}
         onDragOver={(e) => { if (canEdit) { e.preventDefault(); setDragOver(true); } }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
+        title={canEdit ? "点这里换照片 · DROP / PICK" : undefined}
       >
-        {locked ? (
-          <div className="pslot-state">
-            <span className="lk">🔒</span>
-            <span className="lk-l">PRIVATE</span>
-          </div>
-        ) : uploading ? (
-          <div className="pslot-state"><span className="lk">⟳</span><span className="lk-l">UPLOADING…</span></div>
-        ) : photoUrl ? (
-          <img src={photoUrl} alt="" onError={() => setPhotoError(true)} />
-        ) : empty || photoError ? (
-          <div className="pslot-state">
-            <span className="lk">{canEdit ? "+" : "🔑"}</span>
-            <span className="lk-l">{canEdit ? "DROP IMAGE / 拖一张照片" : "登录后可上传 · SIGN IN"}</span>
-          </div>
-        ) : (
-          <div className="pslot-state"><span className="lk">⟳</span><span className="lk-l">LOADING…</span></div>
-        )}
+        <div className="label">
+          {locked ? (
+            <div className="dstate"><span className="lk">🔒</span><span className="lk-l">PRIVATE</span></div>
+          ) : uploading ? (
+            <div className="dstate"><span className="lk">⟳</span><span className="lk-l">UP…</span></div>
+          ) : photoUrl ? (
+            <img src={photoUrl} alt="" onError={() => setPhotoError(true)} />
+          ) : empty || photoError ? (
+            <div className="dstate">
+              <span className="lk">{canEdit ? "＋" : "🔑"}</span>
+              <span className="lk-l">{canEdit ? "照片" : "SIGN IN"}</span>
+            </div>
+          ) : (
+            <div className="dstate"><span className="lk">⟳</span><span className="lk-l">…</span></div>
+          )}
+        </div>
+        <span className="spindle"></span>
         {canEdit && (
           <input
             ref={fileRef}
@@ -343,12 +373,69 @@ function Polaroid({ record, canEdit, onUploaded, onLoginRequest }) {
           />
         )}
       </div>
-      <div className="plabel">
-        <span className="ph">◉ PHOTO</span>
-        <span>{d.yr}.{pad(d.m)}.{pad(d.d)}</span>
-      </div>
-      {err && <div className="pslot-err">// {err}</div>}
+      <span className="rpm"><b>♪</b> 45 RPM · {d.yr}.{pad(d.m)}.{pad(d.d)}</span>
+      {err && <div className="vinyl-err">// {err}</div>}
     </div>
+  );
+}
+
+/* ── NOW SPINNING · turntable hero for the latest record ── */
+function NowSpinning({ record }) {
+  const [playing, setPlaying] = useState(false);
+  const d = parseAnchorDate(record.anchor_date);
+  const parsedChord = useMemo(() => parseChord(record.chord), [record.chord]);
+  const canPlay = audioSupported() && parsedChord.chords.length > 0;
+
+  const togglePlay = () => {
+    if (playing) { stopProgression(); setPlaying(false); return; }
+    if (playProgression(parsedChord.chords, parsedChord.bpm, { onEnded: () => setPlaying(false) })) setPlaying(true);
+  };
+  const playingRef = useRef(false);
+  playingRef.current = playing;
+  useEffect(() => () => { if (playingRef.current) stopProgression(); }, []);
+
+  return (
+    <section className="deck">
+      <span className="gcrn tl"></span><span className="gcrn tr"></span><span className="gcrn bl"></span>
+      <div className="platter">
+        <div className={`bigdisc${playing ? " spinning" : ""}`}>
+          <div className="blabel">
+            <span className="lt">REC // 45</span>
+            <span className="ld">{d.day}</span>
+            <span className="lm">{d.mo.toUpperCase()} · {d.yr}</span>
+          </div>
+          <span className="spindle"></span>
+        </div>
+        <div className="tonearm">
+          <span className="pivot"></span>
+          <span className="arm"></span>
+          <span className="head"></span>
+        </div>
+      </div>
+      <div className="now">
+        <div className="nlabel"><span className="bd"></span>NOW SPINNING · 最新一张</div>
+        <div className="ntitle">{record.summary}</div>
+        <div className="nmeta">
+          {parsedChord.bpm && <span className="chip2">{parsedChord.bpm} BPM</span>}
+          <span>REC {d.day}{pad(d.m)}{d.yr2}</span>
+          {parsedChord.chords.length > 0 && (
+            <span className="chord2">{parsedChord.chords.join("  →  ")}</span>
+          )}
+        </div>
+        <div className="nbar">
+          <button
+            type="button"
+            className="pbtn"
+            onClick={togglePlay}
+            disabled={!canPlay}
+            title={canPlay ? (playing ? "停止 · STOP" : "播放最新一张 · PLAY") : "这张没有和弦"}
+          >
+            {playing ? "◼ 停止 · STOP" : "▶ 播放 · PLAY"}
+          </button>
+          <BigWave />
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -502,7 +589,7 @@ function GramophoneCard({ record, canEdit, onPatch, onDelete, onLoginRequest }) 
         )}
       </div>
 
-      <Polaroid
+      <Vinyl
         record={record}
         canEdit={canEdit && !editing}
         onUploaded={(patched) => onPatch(record.id, { photo_path: patched.photo_path }, true)}
@@ -690,6 +777,10 @@ export default function GramophonePage() {
       />
       <style>{CSS}</style>
 
+      {/* Living background: aurora drift + drifting dust */}
+      <div className="aurora"></div>
+      <Dust />
+
       {/* HUD */}
       <div className="hud">
         <div className="left">
@@ -697,6 +788,8 @@ export default function GramophonePage() {
           <span><b>AUDIO.LINK</b> ENGAGED</span>
           <span className="pipe">│</span>
           <span><b>NODE</b> memory.starwell.space/gramophone</span>
+          <span className="pipe">│</span>
+          <span><b>SUB</b> 留声机·v0.4</span>
         </div>
         <div className="right">
           <Clock />
@@ -707,12 +800,16 @@ export default function GramophonePage() {
 
       {/* Side rail */}
       <aside className="rail">
+        <span>00</span>
         <a href="#/" style={{ color: "inherit", textDecoration: "none", pointerEvents: "auto" }}>
           <span>01 · ARCHIVE</span>
         </a>
         <span className="hi">02 · GRAMOPHONE</span>
+        <span>03 · LATTICE</span>
+        <span>04 · NULL</span>
+        <span>05 · NULL</span>
       </aside>
-      <div className="vrt">STELLAR · ABYSS · GRAMOPHONE · 留声</div>
+      <div className="vrt">STELLAR · ABYSS · GRAMOPHONE · 留声 · 0451</div>
 
       <main className="page">
         {/* Topbar */}
@@ -751,6 +848,10 @@ export default function GramophonePage() {
 
         {showAdd && session && (
           <AddRecordPanel onAdded={handleAdded} onCancel={() => setShowAdd(false)} />
+        )}
+
+        {!loading && records.length > 0 && (
+          <NowSpinning record={records[0]} />
         )}
 
         {loading ? (
@@ -1051,11 +1152,130 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
   font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.22em;color:var(--ink-faint)}
 
+/* ===== Living background: slow aurora drift + drifting dust ===== */
+.aurora{position:fixed;inset:-20%;z-index:0;pointer-events:none;filter:blur(40px);opacity:.55;
+  background:
+    radial-gradient(38% 46% at 22% 30%, rgba(255,62,165,.32), transparent 70%),
+    radial-gradient(34% 40% at 80% 22%, rgba(178,135,255,.26), transparent 70%),
+    radial-gradient(40% 44% at 60% 82%, rgba(0,240,255,.20), transparent 70%);
+  animation:gp-drift 26s ease-in-out infinite alternate}
+@keyframes gp-drift{
+  0%{transform:translate3d(-3%,-2%,0) scale(1.05) rotate(0deg)}
+  50%{transform:translate3d(4%,3%,0) scale(1.12) rotate(4deg)}
+  100%{transform:translate3d(-2%,4%,0) scale(1.06) rotate(-3deg)}}
+.dust{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.dust i{position:absolute;width:2px;height:2px;border-radius:999px;background:#fff;
+  box-shadow:0 0 6px 1px rgba(255,205,235,.8);opacity:0;animation:gp-rise linear infinite}
+@keyframes gp-rise{0%{transform:translateY(20px);opacity:0}10%{opacity:.7}90%{opacity:.5}100%{transform:translateY(-110vh);opacity:0}}
+
+/* lyric inline emphasis */
+.ct-col .lyric em{font-style:italic;color:var(--cy);font-family:'JetBrains Mono',monospace;font-size:14px;background:rgba(0,240,255,.08);padding:1px 6px}
+
+/* ===== Vinyl record (card thumbnail · photo spins WITH the disc) ===== */
+.vinyl{position:relative;align-self:center;justify-self:center;width:188px;height:188px;display:grid;place-items:center}
+.disc{position:relative;width:188px;height:188px;border-radius:50%;
+  background:
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.045) 0 1px, transparent 1px 4px),
+    radial-gradient(circle at 50% 50%, #1a1020 0 30%, #0a0612 30% 100%),
+    conic-gradient(from 0deg, #15101f, #241a33, #15101f, #2a1b3a, #15101f);
+  box-shadow:0 14px 40px -10px rgba(0,0,0,.8), inset 0 0 0 1px rgba(255,62,165,.18);
+  animation:gp-spin 9s linear infinite;animation-play-state:paused;transition:box-shadow .25s}
+.disc.edit{cursor:pointer}
+.disc.drag{box-shadow:0 0 26px color-mix(in oklab,var(--mg),transparent 40%), inset 0 0 0 1px var(--mg)}
+.card:hover .disc{animation-play-state:running;
+  box-shadow:0 18px 56px -10px color-mix(in oklab,var(--mg),transparent 55%), inset 0 0 0 1px color-mix(in oklab,var(--mg),transparent 50%)}
+@keyframes gp-spin{to{transform:rotate(360deg)}}
+.disc::after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from 0deg, transparent 0 10%, rgba(255,255,255,.10) 16%, transparent 24% 60%, rgba(0,240,255,.07) 70%, transparent 80%);
+  mix-blend-mode:screen;opacity:.7}
+/* center label holds the photo — rotates together with the disc */
+.disc .label{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:92px;height:92px;border-radius:50%;display:grid;place-items:center;overflow:hidden;z-index:1;
+  background:radial-gradient(circle at 50% 50%, color-mix(in oklab,var(--mg),#2a0f22 30%), #15091a);
+  box-shadow:0 0 0 1px color-mix(in oklab,var(--mg),transparent 35%), inset 0 0 14px rgba(0,0,0,.6)}
+.disc .label img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover}
+.disc .dstate{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink-faint);text-align:center;padding:6px}
+.disc .dstate .lk{font-size:20px;color:var(--mg);opacity:.85}
+.disc .dstate .lk-l{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.14em}
+.disc .spindle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;
+  background:#0a0612;box-shadow:0 0 0 1px rgba(255,255,255,.3);z-index:2}
+.vinyl .rpm{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+  font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.2em;color:var(--ink-faint);
+  padding:2px 7px;border:1px solid var(--line);background:rgba(8,5,22,.7);white-space:nowrap}
+.vinyl .rpm b{color:var(--mg)}
+.vinyl-err{position:absolute;bottom:-26px;left:50%;transform:translateX(-50%);max-width:200px;text-align:center;
+  font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--rose);letter-spacing:.1em;line-height:1.4;word-break:break-word}
+
+/* ===== NOW SPINNING turntable hero ===== */
+.deck{position:relative;display:grid;grid-template-columns:300px 1fr;gap:34px;align-items:center;margin:8px 0 30px;padding:30px 34px;
+  background:linear-gradient(135deg, rgba(255,62,165,.08), rgba(178,135,255,.04) 60%, transparent), rgba(8,5,22,.6);
+  border:1px solid var(--line-strong);backdrop-filter:blur(8px);overflow:hidden;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%)}
+.deck .gcrn{position:absolute;width:18px;height:18px;border:1px solid var(--mg);opacity:.6}
+.deck .gcrn.tl{left:-1px;top:-1px;border-right:none;border-bottom:none}
+.deck .gcrn.tr{right:-1px;top:-1px;border-left:none;border-bottom:none}
+.deck .gcrn.bl{left:-1px;bottom:-1px;border-right:none;border-top:none}
+.platter{position:relative;width:300px;height:240px;display:grid;place-items:center}
+.platter .bigdisc{width:230px;height:230px;border-radius:50%;position:relative;
+  background:
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.05) 0 1px, transparent 1px 5px),
+    radial-gradient(circle at 50% 50%, #1c1226 0 26%, #090510 26% 100%);
+  box-shadow:0 20px 60px -14px rgba(0,0,0,.85), inset 0 0 0 1px rgba(255,62,165,.2);
+  animation:gp-spin 6s linear infinite;animation-play-state:paused}
+.platter .bigdisc.spinning{animation-play-state:running}
+.platter .bigdisc::after{content:"";position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 0deg, transparent 0 12%, rgba(255,255,255,.12) 18%, transparent 26% 64%, rgba(0,240,255,.08) 74%, transparent 84%);
+  mix-blend-mode:screen;opacity:.75}
+.platter .blabel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:96px;height:96px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  background:radial-gradient(circle at 50% 50%, color-mix(in oklab,var(--mg),#2a0f22 25%), #15091a);
+  box-shadow:0 0 0 1px color-mix(in oklab,var(--mg),transparent 30%), inset 0 0 16px rgba(0,0,0,.6);
+  font-family:'Orbitron',sans-serif;color:var(--ink);z-index:1;
+  animation:gp-spinr 6s linear infinite;animation-play-state:paused}
+.platter .bigdisc.spinning .blabel{animation-play-state:running}
+@keyframes gp-spinr{to{transform:translate(-50%,-50%) rotate(-360deg)}}
+.platter .blabel .lt{font-size:9px;letter-spacing:.2em;color:var(--mg);font-family:'Share Tech Mono',monospace}
+.platter .blabel .ld{font-weight:900;font-size:26px;line-height:1;margin-top:2px;text-shadow:0 0 12px rgba(255,62,165,.5)}
+.platter .blabel .lm{font-size:8px;letter-spacing:.2em;color:var(--ink-faint);font-family:'Share Tech Mono',monospace;margin-top:3px}
+.platter .spindle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:#090510;box-shadow:0 0 0 1px rgba(255,255,255,.35);z-index:2}
+.tonearm{position:absolute;top:8px;right:18px;width:120px;height:120px;transform-origin:top right;transform:rotate(18deg);z-index:3;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+.tonearm .arm{position:absolute;top:6px;right:6px;width:6px;height:104px;border-radius:4px;background:linear-gradient(180deg,#c9b8e8,#7d6aa0);transform-origin:top center;transform:rotate(28deg)}
+.tonearm .pivot{position:absolute;top:0;right:0;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 40% 35%, #e7d9ff, #6b5a8c);box-shadow:0 0 0 1px rgba(255,255,255,.2)}
+.tonearm .head{position:absolute;bottom:-6px;left:34px;width:18px;height:12px;border-radius:2px;background:linear-gradient(180deg,#ff7ab8,#c9377f);box-shadow:0 0 10px color-mix(in oklab,var(--mg),transparent 50%)}
+.deck .now{display:flex;flex-direction:column;gap:14px;min-width:0}
+.deck .nlabel{display:flex;align-items:center;gap:12px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.3em;color:var(--mg)}
+.deck .nlabel .bd{width:7px;height:7px;border-radius:50%;background:var(--am);box-shadow:0 0 10px var(--am);animation:gp-pulse 1.4s infinite}
+.deck .ntitle{font-family:'Noto Serif SC',serif;font-weight:700;font-size:20px;line-height:1.7;color:var(--ink);text-wrap:pretty;white-space:pre-wrap;word-break:break-word}
+.deck .nmeta{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.18em;color:var(--ink-faint)}
+.deck .nmeta .chip2{color:var(--am);padding:3px 10px;border:1px solid color-mix(in oklab,var(--am),transparent 60%);background:color-mix(in oklab,var(--am),transparent 88%);letter-spacing:.12em}
+.deck .nmeta .chord2{color:var(--am);letter-spacing:.06em;font-family:'JetBrains Mono',monospace;font-size:13px}
+.deck .nbar{display:flex;align-items:center;gap:14px;margin-top:2px}
+.pbtn{display:inline-flex;align-items:center;gap:10px;padding:11px 20px;cursor:pointer;
+  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap;
+  color:#1a0712;background:linear-gradient(180deg, color-mix(in oklab,var(--mg),white 12%), var(--mg));border:none;
+  box-shadow:0 0 22px color-mix(in oklab,var(--mg),transparent 55%);
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);transition:transform .15s,box-shadow .15s}
+.pbtn:hover{transform:translateY(-1px);box-shadow:0 0 30px color-mix(in oklab,var(--mg),transparent 35%)}
+.pbtn:disabled{opacity:.45;cursor:default;transform:none;box-shadow:none}
+.bigwave{display:flex;gap:3px;align-items:flex-end;height:38px;flex:1;min-width:80px}
+.bigwave i{display:block;width:3px;border-radius:2px;background:linear-gradient(180deg,var(--mg),var(--am));
+  animation:gp-eq 1.05s ease-in-out infinite;box-shadow:0 0 8px color-mix(in oklab,var(--mg),transparent 60%)}
+.bigwave i:nth-child(3n){animation-delay:.2s}
+.bigwave i:nth-child(4n){animation-delay:.4s}
+.bigwave i:nth-child(5n){animation-delay:.6s}
+
+@media (prefers-reduced-motion: reduce){
+  .aurora,.dust i,.disc,.platter .bigdisc,.platter .blabel,.bigwave i{animation:none!important}
+}
+
 /* Responsive */
 @media (max-width:900px){
   .card{grid-template-columns:108px 1fr;gap:24px}
-  .pola{grid-column:1 / -1;justify-self:stretch}
-  .pslot{height:220px}
+  .vinyl{grid-column:1 / -1;justify-self:center;margin-top:8px}
+}
+@media (max-width:760px){
+  .deck{grid-template-columns:1fr;justify-items:center;text-align:center}
+  .deck .nmeta,.deck .nbar{justify-content:center}
 }
 @media (max-width:720px){
   .card{grid-template-columns:1fr;gap:18px;padding:22px}

@@ -105,6 +105,25 @@ function fmtStamp(ts) {
 
 function nodeId(n) { return `NODE-${String(n).padStart(4, "0")}`; }
 
+/* ── Drifting dust motes (living background) ── */
+function Dust() {
+  const motes = Array.from({ length: 26 }, (_, i) => {
+    const dur = 14 + ((i * 1.7) % 16);
+    return (
+      <i
+        key={i}
+        style={{
+          left: `${(i * 37) % 100}%`,
+          animationDuration: `${dur}s`,
+          animationDelay: `${-((i * 1.3) % dur)}s`,
+          transform: `scale(${0.6 + (i % 4) * 0.5})`,
+        }}
+      />
+    );
+  });
+  return <div className="dust">{motes}</div>;
+}
+
 /* ── Live UTC clock for HUD ── */
 function Clock() {
   const [t, setT] = useState(new Date());
@@ -374,6 +393,10 @@ export default function MemoriesPage() {
       />
       <style>{CSS}</style>
 
+      {/* Living background: aurora drift + drifting dust */}
+      <div className="aurora"></div>
+      <Dust />
+
       {/* HUD top bar */}
       <div className="hud">
         <div className="left">
@@ -381,6 +404,8 @@ export default function MemoriesPage() {
           <span><b>NET.LINK</b> ONLINE</span>
           <span className="pipe">│</span>
           <span><b>NODE</b> memory.starwell.space</span>
+          <span className="pipe">│</span>
+          <span><b>VER</b> 2.6.28</span>
         </div>
         <div className="right">
           <Clock />
@@ -391,18 +416,22 @@ export default function MemoriesPage() {
 
       {/* Side rail */}
       <aside className="rail">
+        <span>00</span>
         <span className="hi">01 · ARCHIVE</span>
         <a href="#/gramophone" style={{ color: "inherit", textDecoration: "none", pointerEvents: "auto" }}>
           <span>02 · GRAMOPHONE</span>
         </a>
+        <span>03 · LATTICE</span>
+        <span>04 · NULL</span>
+        <span>05 · NULL</span>
       </aside>
-      <div className="vrt">STELLAR · ABYSS · MEMORY · ARCHIVE · 星渊</div>
+      <div className="vrt">STELLAR · ABYSS · MEMORY · ARCHIVE · 星渊 · 0451</div>
 
       <main className="page">
         {/* Header */}
         <div className="head">
           <div className="brand">
-            <div className="kicker">// MEMORY.STARWELL.SPACE · 星渊记忆库</div>
+            <div className="kicker">// MEMORY.STARWELL.SPACE · v2.6.28 · 星渊记忆库</div>
             <h1>
               <span className="glitch" data-t="Only">Only</span>
               <span className="accent">Node</span>
@@ -587,9 +616,34 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .memory-shell::after{
   content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
   background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px);
-  mix-blend-mode:overlay;opacity:.18;
+  mix-blend-mode:overlay;opacity:.35;
 }
 .memory-shell[data-intensity="calm"]::after{opacity:.12}
+.memory-shell[data-intensity="glitchy"]::after{opacity:.6}
+.memory-shell[data-intensity="glitchy"] .card:hover{animation:jit .25s steps(2) infinite}
+@keyframes jit{50%{transform:translate(1px,-1px)}}
+
+/* Living background: slow aurora drift + drifting dust */
+.aurora{
+  position:fixed;inset:-20%;z-index:0;pointer-events:none;filter:blur(42px);opacity:.5;
+  background:
+    radial-gradient(36% 44% at 20% 28%, rgba(0,240,255,.28), transparent 70%),
+    radial-gradient(34% 40% at 82% 22%, rgba(255,62,165,.24), transparent 70%),
+    radial-gradient(40% 44% at 62% 82%, rgba(178,135,255,.22), transparent 70%);
+  animation:drift 28s ease-in-out infinite alternate;
+}
+@keyframes drift{
+  0%{transform:translate3d(-3%,-2%,0) scale(1.05) rotate(0deg)}
+  50%{transform:translate3d(4%,3%,0) scale(1.12) rotate(4deg)}
+  100%{transform:translate3d(-2%,4%,0) scale(1.06) rotate(-3deg)}
+}
+.dust{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.dust i{
+  position:absolute;width:2px;height:2px;border-radius:999px;background:#fff;
+  box-shadow:0 0 6px 1px rgba(190,235,255,.8);opacity:0;animation:rise linear infinite;
+}
+@keyframes rise{0%{transform:translateY(20px);opacity:0}10%{opacity:.7}90%{opacity:.5}100%{transform:translateY(-110vh);opacity:0}}
+@media (prefers-reduced-motion: reduce){.aurora,.dust i{animation:none!important}}
 
 /* HUD */
 .hud{
@@ -799,6 +853,7 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
   color:var(--ink);font-size:15px;line-height:1.85;font-weight:300;
   letter-spacing:.01em;white-space:pre-wrap;word-break:break-word;
 }
+.body code,.body .mono{font-family:'JetBrains Mono',monospace;font-size:13px;background:rgba(0,240,255,.08);padding:1px 6px;color:var(--cy)}
 .body.clamped{
   display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;
 }
@@ -882,8 +937,8 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .glitch::before,.glitch::after{
   content:attr(data-t);position:absolute;left:0;top:0;width:100%;background:inherit;pointer-events:none;
 }
-.glitch::before{color:var(--mg);mix-blend-mode:screen;opacity:.7;clip-path:polygon(0 0,100% 0,100% 38%,0 38%);animation:glitch-before 4s infinite steps(2)}
-.glitch::after{color:var(--cy);mix-blend-mode:screen;opacity:.7;clip-path:polygon(0 60%,100% 60%,100% 100%,0 100%);animation:glitch-after 3.6s infinite steps(2)}
+.glitch::before{color:var(--mg);mix-blend-mode:screen;opacity:.45;clip-path:polygon(0 0,100% 0,100% 38%,0 38%);animation:glitch-before 4s infinite steps(2)}
+.glitch::after{color:var(--cy);mix-blend-mode:screen;opacity:.45;clip-path:polygon(0 60%,100% 60%,100% 100%,0 100%);animation:glitch-after 3.6s infinite steps(2)}
 @keyframes glitch-before{
   0%,88%,100%{transform:translate(-2px,0)}
   90%{transform:translate(-5px,1px)}
