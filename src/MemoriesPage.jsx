@@ -596,7 +596,9 @@ const CSS = `
   --f-zh:'Noto Sans SC',sans-serif;
 }
 *{box-sizing:border-box}
-body{margin:0;background:#0a0826;color:var(--ink);font-family:var(--f-zh),-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+/* escape the global Vite #root/body constraints (they center Kara at 1280, not these full-bleed pages) */
+body{margin:0;display:block;background:#0a0826;color:var(--ink);font-family:var(--f-zh),-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+#root{max-width:none;width:100%;margin:0;padding:0;text-align:left}
 ::selection{background:rgba(0,240,255,.35);color:#fff}
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-thumb{background:rgba(120,160,255,.18)}
@@ -686,7 +688,9 @@ body{margin:0;background:#0a0826;color:var(--ink);font-family:var(--f-zh),-apple
 .rail span::before{content:"";width:14px;height:1px;background:var(--line-strong)}
 .rail .hi{color:var(--cy)}
 .rail .hi::before{background:var(--cy);box-shadow:0 0 6px var(--cy)}
-@media (max-width: 980px){ .rail, .vrt { display:none } }
+/* rail/vrt are decorative and need side gutters; hide them whenever the centered
+   content would collide with them (i.e. below ~1500px there isn't enough margin) */
+@media (max-width: 1500px){ .rail, .vrt { display:none } }
 
 .vrt{
   position:fixed;right:18px;top:50%;transform:translateY(-50%) rotate(180deg);
@@ -734,9 +738,19 @@ body{margin:0;background:#0a0826;color:var(--ink);font-family:var(--f-zh),-apple
 .head .actions{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 
 @media (max-width: 720px){
-  .brand h1{font-size:24px}
+  .brand h1{font-size:22px;flex-wrap:wrap;overflow-wrap:anywhere}
   .page{padding:24px 16px 80px}
-  .hud{padding:10px 16px;font-size:10px;letter-spacing:.12em}
+  .hud{padding:9px 14px;font-size:13px;letter-spacing:.04em}
+  .head{gap:16px}
+  .head .actions{gap:8px}
+}
+@media (max-width: 460px){
+  .brand h1{font-size:17px;line-height:1.3}
+  .brand .kicker{font-size:13px;letter-spacing:.06em;overflow-wrap:anywhere}
+  .brand .sub{font-size:14px}
+  .cyb-btn{padding:10px 12px;font-size:12px;gap:7px}
+  .chip{font-size:13px;padding:8px 11px;gap:8px}
+  .page{padding:20px 12px 64px}
 }
 
 /* Cyber buttons */

@@ -853,7 +853,9 @@ const CSS = `
   --f-zh:'Noto Sans SC',sans-serif;
 }
 *{box-sizing:border-box}
-body{margin:0;background:#1a0e3a;color:var(--ink);font-family:var(--f-zh),-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+/* escape the global Vite #root/body constraints (they center Kara at 1280, not these full-bleed pages) */
+body{margin:0;display:block;background:#1a0e3a;color:var(--ink);font-family:var(--f-zh),-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+#root{max-width:none;width:100%;margin:0;padding:0;text-align:left}
 ::selection{background:rgba(255,62,165,.35);color:#fff}
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-thumb{background:rgba(220,140,220,.18)}
@@ -919,7 +921,9 @@ body{margin:0;background:#1a0e3a;color:var(--ink);font-family:var(--f-zh),-apple
 .rail .hi{color:var(--mg)}.rail .hi::before{background:var(--mg);box-shadow:0 0 6px var(--mg)}
 .vrt{position:fixed;right:18px;top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;
   font-family:var(--f-crt);font-size:15px;letter-spacing:.3em;color:var(--ink-faint);opacity:.7;z-index:3;pointer-events:none}
-@media (max-width:980px){ .rail, .vrt { display:none } }
+/* rail/vrt are decorative and need side gutters; hide them when the centered
+   content would collide with them (below ~1500px there isn't enough margin) */
+@media (max-width:1500px){ .rail, .vrt { display:none } }
 
 .page{position:relative;z-index:2;max-width:1100px;margin:0 auto;padding:36px 28px 120px}
 
@@ -1169,9 +1173,18 @@ body{margin:0;background:#1a0e3a;color:var(--ink);font-family:var(--f-zh),-apple
   .dt{flex-direction:row;align-items:center;border-right:none;border-bottom:1px dashed var(--line);padding-right:0;padding-bottom:14px;gap:14px;flex-wrap:wrap}
   .dt .day{font-size:42px}
   .topbar{flex-wrap:wrap}
-  .title h1{font-size:32px}
-  .title h1 .zh{font-size:36px}
+  .title h1{font-size:20px}
+  .title h1 .zh{font-size:30px}
   .page{padding:24px 16px 80px}
-  .hud{padding:10px 16px;font-size:10px;letter-spacing:.12em}
+  .hud{padding:9px 14px;font-size:13px;letter-spacing:.04em}
+}
+@media (max-width:460px){
+  .title h1{font-size:15px}
+  .title h1 .zh{font-size:24px}
+  .counter .n{font-size:20px}
+  .stamp .yr{font-size:22px}
+  .cyb-btn,.back{padding:9px 12px;font-size:12px}
+  .page{padding:20px 12px 70px}
+  .vinyl,.disc{width:150px;height:150px}
 }
 `;
