@@ -204,18 +204,6 @@ function Wave() {
   );
 }
 
-/* ── Big EQ wave (turntable hero) ── */
-function BigWave({ n = 42 }) {
-  const bars = useMemo(() => Array.from({ length: n }, (_, i) =>
-    Math.min(100, 18 + Math.abs(Math.sin(i * 0.7)) * 82)
-  ), [n]);
-  return (
-    <span className="bigwave">
-      {bars.map((h, i) => <i key={i} style={{ height: `${h}%` }} />)}
-    </span>
-  );
-}
-
 /* ── Drifting dust motes (living background) ── */
 function Dust() {
   const motes = Array.from({ length: 26 }, (_, i) => {
@@ -376,66 +364,6 @@ function Vinyl({ record, canEdit, onUploaded, onLoginRequest }) {
       <span className="rpm"><b>♪</b> 45 RPM · {d.yr}.{pad(d.m)}.{pad(d.d)}</span>
       {err && <div className="vinyl-err">// {err}</div>}
     </div>
-  );
-}
-
-/* ── NOW SPINNING · turntable hero for the latest record ── */
-function NowSpinning({ record }) {
-  const [playing, setPlaying] = useState(false);
-  const d = parseAnchorDate(record.anchor_date);
-  const parsedChord = useMemo(() => parseChord(record.chord), [record.chord]);
-  const canPlay = audioSupported() && parsedChord.chords.length > 0;
-
-  const togglePlay = () => {
-    if (playing) { stopProgression(); setPlaying(false); return; }
-    if (playProgression(parsedChord.chords, parsedChord.bpm, { onEnded: () => setPlaying(false) })) setPlaying(true);
-  };
-  const playingRef = useRef(false);
-  playingRef.current = playing;
-  useEffect(() => () => { if (playingRef.current) stopProgression(); }, []);
-
-  return (
-    <section className="deck">
-      <span className="gcrn tl"></span><span className="gcrn tr"></span><span className="gcrn bl"></span>
-      <div className="platter">
-        <div className={`bigdisc${playing ? " spinning" : ""}`}>
-          <div className="blabel">
-            <span className="lt">REC // 45</span>
-            <span className="ld">{d.day}</span>
-            <span className="lm">{d.mo.toUpperCase()} · {d.yr}</span>
-          </div>
-          <span className="spindle"></span>
-        </div>
-        <div className="tonearm">
-          <span className="pivot"></span>
-          <span className="arm"></span>
-          <span className="head"></span>
-        </div>
-      </div>
-      <div className="now">
-        <div className="nlabel"><span className="bd"></span>NOW SPINNING · 最新一张</div>
-        <div className="ntitle">{record.summary}</div>
-        <div className="nmeta">
-          {parsedChord.bpm && <span className="chip2">{parsedChord.bpm} BPM</span>}
-          <span>REC {d.day}{pad(d.m)}{d.yr2}</span>
-          {parsedChord.chords.length > 0 && (
-            <span className="chord2">{parsedChord.chords.join("  →  ")}</span>
-          )}
-        </div>
-        <div className="nbar">
-          <button
-            type="button"
-            className="pbtn"
-            onClick={togglePlay}
-            disabled={!canPlay}
-            title={canPlay ? (playing ? "停止 · STOP" : "播放最新一张 · PLAY") : "这张没有和弦"}
-          >
-            {playing ? "◼ 停止 · STOP" : "▶ 播放 · PLAY"}
-          </button>
-          <BigWave />
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -772,10 +700,16 @@ export default function GramophonePage() {
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link
-        href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@300;400;500;600&family=Orbitron:wght@500;700;900&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@300;400;500;600&family=Orbitron:wght@500;700;900&family=Press+Start+2P&family=VT323&family=DotGothic16&display=swap"
         rel="stylesheet"
       />
       <style>{CSS}</style>
+
+      {/* Vaporwave sunset background (pure CSS) */}
+      <div className="vwbg"></div>
+      <div className="vwsun"></div>
+      <div className="vwgrid"></div>
+      <div className="vwveil"></div>
 
       {/* Living background: aurora drift + drifting dust */}
       <div className="aurora"></div>
@@ -850,10 +784,6 @@ export default function GramophonePage() {
           <AddRecordPanel onAdded={handleAdded} onCancel={() => setShowAdd(false)} />
         )}
 
-        {!loading && records.length > 0 && (
-          <NowSpinning record={records[0]} />
-        )}
-
         {loading ? (
           <div className="empty">
             <span className="empty-glyph">⟳</span>
@@ -916,24 +846,43 @@ const CSS = `
   --am:#ffb627;
   --vi:#b287ff;
   --rose:#ff6a8e;
-  --grid:56px;
+  --grid:32px;
+  --f-pixel:'Press Start 2P', monospace;
+  --f-crt:'VT323', monospace;
+  --f-dot:'DotGothic16','Noto Sans SC',sans-serif;
+  --f-zh:'Noto Sans SC',sans-serif;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+body{margin:0;background:#1a0e3a;color:var(--ink);font-family:var(--f-zh),-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
 ::selection{background:rgba(255,62,165,.35);color:#fff}
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-thumb{background:rgba(220,140,220,.18)}
 
 .gram-shell{
   min-height:100vh;position:relative;
-  background:
-    radial-gradient(1100px 700px at 10% -10%, rgba(255,62,165,.13), transparent 60%),
-    radial-gradient(900px 600px at 105% 8%, rgba(178,135,255,.10), transparent 55%),
-    radial-gradient(900px 500px at 50% 110%, rgba(0,240,255,.08), transparent 55%),
-    linear-gradient(180deg, #07041a 0%, #050314 100%);
+  background:#1a0e3a;
   overflow-x:hidden;
-  font-family:'Noto Sans SC',-apple-system,sans-serif;color:var(--ink);
+  font-family:var(--f-zh),-apple-system,sans-serif;color:var(--ink);
 }
+/* ===== Vaporwave sunset background (pure CSS, fixed layers) ===== */
+.vwbg{position:fixed;inset:0;z-index:0;overflow:hidden;
+  background:linear-gradient(180deg, #1b0e44 0%, #3b1566 20%, #7a2486 40%, #c83d8f 56%, #ff6f8f 66%, #ffb27a 72%, #6a2a72 72.4%, #160d36 100%)}
+.vwsun{position:fixed;left:50%;top:14%;transform:translateX(-50%);z-index:0;pointer-events:none;
+  width:300px;height:300px;border-radius:50%;overflow:hidden;
+  background:linear-gradient(180deg,#fff1a8 0%,#ffd25e 40%,#ff7eb0 64%,#c43d9e 100%);
+  box-shadow:0 0 110px 28px rgba(255,120,180,.4)}
+.vwsun::after{content:"";position:absolute;left:0;right:0;bottom:0;height:52%;
+  background:repeating-linear-gradient(180deg, transparent 0 5px, #3a1566 5px 8px, transparent 8px 12px, #3a1566 12px 17px, transparent 17px 23px, #3a1566 23px 30px)}
+.vwgrid{position:fixed;left:0;right:0;bottom:0;height:40%;z-index:0;pointer-events:none;overflow:hidden;
+  -webkit-mask:linear-gradient(180deg, transparent 0, #000 34%); mask:linear-gradient(180deg, transparent 0, #000 34%)}
+.vwgrid::before{content:"";position:absolute;left:-60%;right:-60%;top:0;bottom:-30%;
+  background-image:repeating-linear-gradient(90deg, rgba(0,238,255,.5) 0 2px, transparent 2px 60px), repeating-linear-gradient(0deg, rgba(255,62,165,.45) 0 2px, transparent 2px 60px);
+  transform:perspective(300px) rotateX(74deg) scale(1.5);transform-origin:top center;
+  animation:vwgridmove 7s linear infinite}
+@keyframes vwgridmove{from{background-position:0 0,0 0}to{background-position:0 0,0 60px}}
+.vwveil{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(180deg, rgba(26,12,52,.16) 0%, rgba(20,10,44,.34) 46%, rgba(12,7,38,.56) 100%)}
+@media (prefers-reduced-motion: reduce){.vwgrid::before{animation:none!important}}
 .gram-shell::before{
   content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
   background-image:linear-gradient(to right,var(--line) 1px,transparent 1px),linear-gradient(to bottom,var(--line) 1px,transparent 1px);
@@ -950,10 +899,10 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 /* HUD */
 .hud{
   position:relative;z-index:3;
-  display:flex;align-items:center;justify-content:space-between;padding:10px 28px;
-  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.18em;color:var(--ink-dim);
-  border-bottom:1px solid var(--line);
-  background:linear-gradient(180deg, rgba(255,62,165,.05), transparent);
+  display:flex;align-items:center;justify-content:space-between;padding:9px 28px;
+  font-family:var(--f-crt);font-size:15px;letter-spacing:.02em;color:var(--ink-dim);
+  border-bottom:1px solid var(--line-strong);
+  background:rgba(22,12,46,.46);backdrop-filter:blur(9px) saturate(1.1);
   flex-wrap:wrap;gap:8px;
 }
 .hud .left,.hud .right{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
@@ -964,12 +913,12 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 
 /* Side rail */
 .rail{position:fixed;left:14px;top:50%;transform:translateY(-50%);z-index:3;display:flex;flex-direction:column;gap:7px;
-  color:var(--ink-faint);font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.2em;pointer-events:none}
+  color:var(--ink-faint);font-family:var(--f-crt);font-size:14px;letter-spacing:.12em;pointer-events:none}
 .rail span{display:flex;align-items:center;gap:8px}
 .rail span::before{content:"";width:14px;height:1px;background:var(--line-strong)}
 .rail .hi{color:var(--mg)}.rail .hi::before{background:var(--mg);box-shadow:0 0 6px var(--mg)}
 .vrt{position:fixed;right:18px;top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;
-  font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.5em;color:var(--ink-faint);opacity:.7;z-index:3;pointer-events:none}
+  font-family:var(--f-crt);font-size:15px;letter-spacing:.3em;color:var(--ink-faint);opacity:.7;z-index:3;pointer-events:none}
 @media (max-width:980px){ .rail, .vrt { display:none } }
 
 .page{position:relative;z-index:2;max-width:1100px;margin:0 auto;padding:36px 28px 120px}
@@ -980,36 +929,36 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .topbar::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
   background:linear-gradient(90deg,transparent,var(--mg),transparent);filter:blur(.4px);opacity:.7}
 
-.back{display:inline-flex;align-items:center;gap:10px;padding:11px 16px;background:rgba(255,62,165,.05);
-  color:var(--mg);font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;letter-spacing:.18em;text-transform:uppercase;
-  border:1px solid color-mix(in oklab, var(--mg), transparent 55%);cursor:pointer;text-decoration:none;transition:all .18s;
+.back{display:inline-flex;align-items:center;gap:9px;padding:11px 16px;background:rgba(26,14,52,.42);backdrop-filter:blur(8px);
+  color:var(--mg);font-family:var(--f-dot);font-weight:400;font-size:13px;letter-spacing:.04em;
+  border:1px solid color-mix(in oklab, var(--mg), transparent 50%);cursor:pointer;text-decoration:none;transition:all .18s;
   clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);white-space:nowrap}
 .back:hover{background:color-mix(in oklab, var(--mg), transparent 82%);box-shadow:0 0 18px color-mix(in oklab,var(--mg),transparent 70%)}
 
 .title{display:flex;flex-direction:column;gap:6px;align-items:center;flex:1;min-width:200px}
-.title .kicker{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.4em;color:var(--mg);text-shadow:0 0 12px rgba(255,62,165,.5)}
-.title h1{margin:0;display:flex;align-items:baseline;gap:.4em;flex-wrap:wrap;justify-content:center;
-  font-family:'Orbitron','Rajdhani',sans-serif;font-weight:900;font-size:46px;line-height:1;color:var(--ink);letter-spacing:.04em;
-  text-shadow:0 0 24px rgba(255,62,165,.22)}
-.title h1 .zh{font-family:'Noto Serif SC',serif;font-weight:700;font-size:50px;white-space:nowrap;
-  background:linear-gradient(180deg,#fff 0%,#ffd5e8 35%,#ff6cb6 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 0 18px rgba(255,62,165,.4))}
+.title .kicker{font-family:var(--f-crt);font-size:16px;letter-spacing:.16em;color:var(--cy);text-shadow:0 0 12px rgba(0,240,255,.5), 0 2px 6px rgba(0,0,0,.7)}
+.title h1{margin:0;display:flex;align-items:center;gap:.5em;flex-wrap:wrap;justify-content:center;
+  font-family:var(--f-pixel);font-weight:400;font-size:24px;line-height:1.2;color:var(--ink);letter-spacing:0;
+  text-shadow:3px 3px 0 rgba(0,0,0,.4), 0 0 24px rgba(255,62,165,.3)}
+.title h1 .zh{font-family:'Noto Serif SC',serif;font-weight:700;font-size:42px;white-space:nowrap;
+  background:linear-gradient(180deg,#fff 0%,#ffe0b0 30%,#ff8fcb 70%,#9b6cff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 18px rgba(255,62,165,.45))}
 
-.counter{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-family:'Share Tech Mono',monospace;color:var(--ink-faint)}
-.counter .n{font-family:'Orbitron',sans-serif;font-weight:700;font-size:38px;color:var(--mg);text-shadow:0 0 18px rgba(255,62,165,.5);letter-spacing:.04em;line-height:1}
-.counter .l{font-size:10px;letter-spacing:.32em}
+.counter{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-family:var(--f-crt);color:var(--ink-dim)}
+.counter .n{font-family:var(--f-pixel);font-weight:400;font-size:24px;color:var(--mg);text-shadow:0 0 18px rgba(255,62,165,.5);letter-spacing:0;line-height:1.1}
+.counter .l{font-size:14px;letter-spacing:.12em}
 .ctop-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:flex-end}
 
 /* Cyber buttons (shared) */
 .cyb-btn{
   --col:var(--mg);
   position:relative;display:inline-flex;align-items:center;gap:10px;
-  padding:11px 18px;background:rgba(255,62,165,.05);color:var(--col);
-  font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;letter-spacing:.18em;text-transform:uppercase;
-  border:1px solid color-mix(in oklab, var(--col), transparent 55%);cursor:pointer;transition:all .18s ease;white-space:nowrap;text-decoration:none;
+  padding:11px 18px;background:rgba(26,14,52,.42);backdrop-filter:blur(8px);color:var(--col);
+  font-family:var(--f-dot);font-weight:400;font-size:13px;letter-spacing:.04em;
+  border:1px solid color-mix(in oklab, var(--col), transparent 50%);cursor:pointer;transition:all .18s ease;white-space:nowrap;text-decoration:none;
   clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
 }
-.cyb-btn .zh{font-family:'Noto Sans SC';letter-spacing:.05em}
+.cyb-btn .zh{font-family:var(--f-dot);letter-spacing:.04em}
 .cyb-btn:hover{background:color-mix(in oklab, var(--col), transparent 82%);box-shadow:0 0 20px color-mix(in oklab, var(--col), transparent 65%);transform:translateY(-1px)}
 .cyb-btn.solid{background:linear-gradient(180deg, color-mix(in oklab, var(--col), transparent 70%), color-mix(in oklab, var(--col), transparent 85%));
   color:color-mix(in oklab, var(--col), white 18%);border-color:var(--col);box-shadow:0 0 22px color-mix(in oklab, var(--col), transparent 70%)}
@@ -1017,17 +966,17 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 
 /* Stamp */
 .stamp{display:flex;align-items:center;gap:18px;margin:34px 0 22px;flex-wrap:wrap}
-.stamp .yr{font-family:'Orbitron',sans-serif;font-weight:700;font-size:46px;color:var(--ink);letter-spacing:.06em;text-shadow:0 0 18px rgba(0,240,255,.18);line-height:1}
-.stamp .mo{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:18px;color:var(--cy);letter-spacing:.4em;text-transform:uppercase}
+.stamp .yr{font-family:var(--f-pixel);font-weight:400;font-size:26px;color:var(--ink);letter-spacing:0;text-shadow:3px 3px 0 rgba(0,0,0,.35),0 0 18px rgba(0,240,255,.2);line-height:1.1}
+.stamp .mo{font-family:var(--f-crt);font-size:22px;color:var(--cy);letter-spacing:.2em;text-transform:uppercase}
 .stamp .ln{flex:1;height:1px;background:linear-gradient(90deg,var(--line-strong),transparent);min-width:60px}
-.stamp .ct{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.3em;color:var(--ink-faint)}
-.stamp .ct b{color:var(--mg);font-weight:500}
+.stamp .ct{font-family:var(--f-crt);font-size:15px;letter-spacing:.1em;color:var(--ink-dim)}
+.stamp .ct b{color:var(--mg);font-weight:400}
 
 /* Cards */
 .list{display:flex;flex-direction:column;gap:22px}
 .card{position:relative;padding:26px 32px 24px;display:grid;grid-template-columns:108px 1fr 220px;gap:30px;
-  background:linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.005)), rgba(8,5,22,.55);
-  border:1px solid var(--line-strong);backdrop-filter:blur(6px);
+  background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012)), rgba(28,14,54,.40);
+  border:1px solid var(--line-strong);backdrop-filter:blur(11px) saturate(1.15);
   transition:border-color .2s,transform .2s,box-shadow .2s;overflow:hidden;align-items:start}
 .card::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;background:var(--mg);
   box-shadow:0 0 18px var(--mg),0 0 36px color-mix(in oklab,var(--mg),transparent 50%)}
@@ -1043,8 +992,8 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 /* Date column */
 .dt{display:flex;flex-direction:column;gap:4px;align-items:flex-start;border-right:1px dashed var(--line);padding-right:24px}
 .dt .day{font-family:'Orbitron',sans-serif;font-weight:900;font-size:64px;line-height:.9;color:var(--ink);text-shadow:0 0 16px rgba(255,62,165,.3)}
-.dt .mo{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.26em;color:var(--mg)}
-.dt .yr-line{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.26em;color:var(--ink-faint)}
+.dt .mo{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.22em;color:var(--mg)}
+.dt .yr-line{font-family:'Share Tech Mono',monospace;font-size:9.5px;letter-spacing:.16em;color:var(--ink-faint)}
 .dt .wk{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:.32em;color:var(--cy);margin-top:8px;
   padding:3px 8px;border:1px solid color-mix(in oklab,var(--cy),transparent 55%);background:color-mix(in oklab,var(--cy),transparent 88%);align-self:flex-start}
 
@@ -1112,8 +1061,8 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .plabel .ph{color:var(--mg);text-shadow:0 0 6px rgba(255,62,165,.4)}
 
 /* Panel (login + add) */
-.panel{position:relative;padding:18px 22px 16px;margin-bottom:24px;background:rgba(8,5,22,.55);border:1px solid var(--line-strong);
-  backdrop-filter:blur(6px);display:flex;flex-direction:column;gap:10px}
+.panel{position:relative;padding:18px 22px 16px;margin-bottom:24px;background:rgba(28,14,54,.46);border:1px solid var(--line-strong);
+  backdrop-filter:blur(11px) saturate(1.1);display:flex;flex-direction:column;gap:10px}
 .panel .pcrn{position:absolute;width:12px;height:12px;border:1px solid var(--mg);opacity:.5}
 .panel .pcrn.tl{left:-1px;top:-1px;border-right:none;border-bottom:none}
 .panel .pcrn.tr{right:-1px;top:-1px;border-left:none;border-bottom:none}
@@ -1153,7 +1102,7 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
   font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.22em;color:var(--ink-faint)}
 
 /* ===== Living background: slow aurora drift + drifting dust ===== */
-.aurora{position:fixed;inset:-20%;z-index:0;pointer-events:none;filter:blur(40px);opacity:.55;
+.aurora{position:fixed;inset:-20%;z-index:0;pointer-events:none;filter:blur(40px);opacity:.16;
   background:
     radial-gradient(38% 46% at 22% 30%, rgba(255,62,165,.32), transparent 70%),
     radial-gradient(34% 40% at 80% 22%, rgba(178,135,255,.26), transparent 70%),
@@ -1206,76 +1155,14 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .vinyl-err{position:absolute;bottom:-26px;left:50%;transform:translateX(-50%);max-width:200px;text-align:center;
   font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--rose);letter-spacing:.1em;line-height:1.4;word-break:break-word}
 
-/* ===== NOW SPINNING turntable hero ===== */
-.deck{position:relative;display:grid;grid-template-columns:300px 1fr;gap:34px;align-items:center;margin:8px 0 30px;padding:30px 34px;
-  background:linear-gradient(135deg, rgba(255,62,165,.08), rgba(178,135,255,.04) 60%, transparent), rgba(8,5,22,.6);
-  border:1px solid var(--line-strong);backdrop-filter:blur(8px);overflow:hidden;
-  clip-path:polygon(0 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%)}
-.deck .gcrn{position:absolute;width:18px;height:18px;border:1px solid var(--mg);opacity:.6}
-.deck .gcrn.tl{left:-1px;top:-1px;border-right:none;border-bottom:none}
-.deck .gcrn.tr{right:-1px;top:-1px;border-left:none;border-bottom:none}
-.deck .gcrn.bl{left:-1px;bottom:-1px;border-right:none;border-top:none}
-.platter{position:relative;width:300px;height:240px;display:grid;place-items:center}
-.platter .bigdisc{width:230px;height:230px;border-radius:50%;position:relative;
-  background:
-    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.05) 0 1px, transparent 1px 5px),
-    radial-gradient(circle at 50% 50%, #1c1226 0 26%, #090510 26% 100%);
-  box-shadow:0 20px 60px -14px rgba(0,0,0,.85), inset 0 0 0 1px rgba(255,62,165,.2);
-  animation:gp-spin 6s linear infinite;animation-play-state:paused}
-.platter .bigdisc.spinning{animation-play-state:running}
-.platter .bigdisc::after{content:"";position:absolute;inset:0;border-radius:50%;
-  background:conic-gradient(from 0deg, transparent 0 12%, rgba(255,255,255,.12) 18%, transparent 26% 64%, rgba(0,240,255,.08) 74%, transparent 84%);
-  mix-blend-mode:screen;opacity:.75}
-.platter .blabel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  width:96px;height:96px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
-  background:radial-gradient(circle at 50% 50%, color-mix(in oklab,var(--mg),#2a0f22 25%), #15091a);
-  box-shadow:0 0 0 1px color-mix(in oklab,var(--mg),transparent 30%), inset 0 0 16px rgba(0,0,0,.6);
-  font-family:'Orbitron',sans-serif;color:var(--ink);z-index:1;
-  animation:gp-spinr 6s linear infinite;animation-play-state:paused}
-.platter .bigdisc.spinning .blabel{animation-play-state:running}
-@keyframes gp-spinr{to{transform:translate(-50%,-50%) rotate(-360deg)}}
-.platter .blabel .lt{font-size:9px;letter-spacing:.2em;color:var(--mg);font-family:'Share Tech Mono',monospace}
-.platter .blabel .ld{font-weight:900;font-size:26px;line-height:1;margin-top:2px;text-shadow:0 0 12px rgba(255,62,165,.5)}
-.platter .blabel .lm{font-size:8px;letter-spacing:.2em;color:var(--ink-faint);font-family:'Share Tech Mono',monospace;margin-top:3px}
-.platter .spindle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:#090510;box-shadow:0 0 0 1px rgba(255,255,255,.35);z-index:2}
-.tonearm{position:absolute;top:8px;right:18px;width:120px;height:120px;transform-origin:top right;transform:rotate(18deg);z-index:3;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
-.tonearm .arm{position:absolute;top:6px;right:6px;width:6px;height:104px;border-radius:4px;background:linear-gradient(180deg,#c9b8e8,#7d6aa0);transform-origin:top center;transform:rotate(28deg)}
-.tonearm .pivot{position:absolute;top:0;right:0;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 40% 35%, #e7d9ff, #6b5a8c);box-shadow:0 0 0 1px rgba(255,255,255,.2)}
-.tonearm .head{position:absolute;bottom:-6px;left:34px;width:18px;height:12px;border-radius:2px;background:linear-gradient(180deg,#ff7ab8,#c9377f);box-shadow:0 0 10px color-mix(in oklab,var(--mg),transparent 50%)}
-.deck .now{display:flex;flex-direction:column;gap:14px;min-width:0}
-.deck .nlabel{display:flex;align-items:center;gap:12px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.3em;color:var(--mg)}
-.deck .nlabel .bd{width:7px;height:7px;border-radius:50%;background:var(--am);box-shadow:0 0 10px var(--am);animation:gp-pulse 1.4s infinite}
-.deck .ntitle{font-family:'Noto Serif SC',serif;font-weight:700;font-size:20px;line-height:1.7;color:var(--ink);text-wrap:pretty;white-space:pre-wrap;word-break:break-word}
-.deck .nmeta{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.18em;color:var(--ink-faint)}
-.deck .nmeta .chip2{color:var(--am);padding:3px 10px;border:1px solid color-mix(in oklab,var(--am),transparent 60%);background:color-mix(in oklab,var(--am),transparent 88%);letter-spacing:.12em}
-.deck .nmeta .chord2{color:var(--am);letter-spacing:.06em;font-family:'JetBrains Mono',monospace;font-size:13px}
-.deck .nbar{display:flex;align-items:center;gap:14px;margin-top:2px}
-.pbtn{display:inline-flex;align-items:center;gap:10px;padding:11px 20px;cursor:pointer;
-  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap;
-  color:#1a0712;background:linear-gradient(180deg, color-mix(in oklab,var(--mg),white 12%), var(--mg));border:none;
-  box-shadow:0 0 22px color-mix(in oklab,var(--mg),transparent 55%);
-  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);transition:transform .15s,box-shadow .15s}
-.pbtn:hover{transform:translateY(-1px);box-shadow:0 0 30px color-mix(in oklab,var(--mg),transparent 35%)}
-.pbtn:disabled{opacity:.45;cursor:default;transform:none;box-shadow:none}
-.bigwave{display:flex;gap:3px;align-items:flex-end;height:38px;flex:1;min-width:80px}
-.bigwave i{display:block;width:3px;border-radius:2px;background:linear-gradient(180deg,var(--mg),var(--am));
-  animation:gp-eq 1.05s ease-in-out infinite;box-shadow:0 0 8px color-mix(in oklab,var(--mg),transparent 60%)}
-.bigwave i:nth-child(3n){animation-delay:.2s}
-.bigwave i:nth-child(4n){animation-delay:.4s}
-.bigwave i:nth-child(5n){animation-delay:.6s}
-
 @media (prefers-reduced-motion: reduce){
-  .aurora,.dust i,.disc,.platter .bigdisc,.platter .blabel,.bigwave i{animation:none!important}
+  .aurora,.dust i,.disc{animation:none!important}
 }
 
 /* Responsive */
 @media (max-width:900px){
   .card{grid-template-columns:108px 1fr;gap:24px}
   .vinyl{grid-column:1 / -1;justify-self:center;margin-top:8px}
-}
-@media (max-width:760px){
-  .deck{grid-template-columns:1fr;justify-items:center;text-align:center}
-  .deck .nmeta,.deck .nbar{justify-content:center}
 }
 @media (max-width:720px){
   .card{grid-template-columns:1fr;gap:18px;padding:22px}

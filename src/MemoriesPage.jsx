@@ -388,10 +388,14 @@ export default function MemoriesPage() {
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link
-        href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@300;400;500;600&family=Orbitron:wght@500;700;900&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@300;400;500;600&family=Orbitron:wght@500;700;900&family=Press+Start+2P&family=VT323&family=DotGothic16&display=swap"
         rel="stylesheet"
       />
       <style>{CSS}</style>
+
+      {/* pixel-city background + dark veil (fixed layers behind everything) */}
+      <div className="citybg"></div>
+      <div className="cityveil"></div>
 
       {/* Living background: aurora drift + drifting dust */}
       <div className="aurora"></div>
@@ -585,24 +589,33 @@ const CSS = `
   --lm:#7cff4f;
   --vi:#b287ff;
   --rose:#ff6a8e;
-  --grid:56px;
+  --grid:32px;
+  --f-pixel:'Press Start 2P', monospace;
+  --f-crt:'VT323', monospace;
+  --f-dot:'DotGothic16','Noto Sans SC',sans-serif;
+  --f-zh:'Noto Sans SC',sans-serif;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+body{margin:0;background:#0a0826;color:var(--ink);font-family:var(--f-zh),-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
 ::selection{background:rgba(0,240,255,.35);color:#fff}
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-thumb{background:rgba(120,160,255,.18)}
 
 .memory-shell{
   min-height:100vh;
-  background:
-    radial-gradient(1200px 700px at 12% -10%, rgba(255,62,165,.10), transparent 60%),
-    radial-gradient(1100px 600px at 105% 8%, rgba(0,240,255,.10), transparent 55%),
-    radial-gradient(900px 500px at 50% 110%, rgba(178,135,255,.10), transparent 55%),
-    linear-gradient(180deg, #07041a 0%, #050314 100%);
+  background:#0a0826;
   overflow-x:hidden;color:var(--ink);
-  font-family:'Noto Sans SC',-apple-system,sans-serif;
+  font-family:var(--f-zh),-apple-system,sans-serif;
   position:relative;
+}
+/* pixel-city background image + dark veil (fixed, behind everything) */
+.citybg{
+  position:fixed;inset:0;z-index:0;image-rendering:pixelated;
+  background:#0a0826 url('/pixel-city.png') center center / cover no-repeat;
+}
+.cityveil{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(180deg, rgba(8,6,26,.22) 0%, rgba(9,6,26,.40) 52%, rgba(6,4,18,.64) 100%);
 }
 .memory-shell::before{
   content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
@@ -625,7 +638,7 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 
 /* Living background: slow aurora drift + drifting dust */
 .aurora{
-  position:fixed;inset:-20%;z-index:0;pointer-events:none;filter:blur(42px);opacity:.5;
+  position:fixed;inset:-20%;z-index:0;pointer-events:none;filter:blur(42px);opacity:.28;
   background:
     radial-gradient(36% 44% at 20% 28%, rgba(0,240,255,.28), transparent 70%),
     radial-gradient(34% 40% at 82% 22%, rgba(255,62,165,.24), transparent 70%),
@@ -649,11 +662,11 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .hud{
   position:relative;z-index:3;
   display:flex;align-items:center;justify-content:space-between;
-  padding:10px 28px;
-  font-family:'Share Tech Mono','JetBrains Mono',monospace;
-  font-size:11px;letter-spacing:.18em;color:var(--ink-dim);
-  border-bottom:1px solid var(--line);
-  background:linear-gradient(180deg, rgba(0,240,255,.04), transparent);
+  padding:9px 28px;
+  font-family:var(--f-crt);
+  font-size:15px;letter-spacing:.04em;color:var(--ink-dim);
+  border-bottom:1px solid var(--line-strong);
+  background:rgba(10,8,28,.5);backdrop-filter:blur(9px) saturate(1.1);
   flex-wrap:wrap;gap:8px;
 }
 .hud .left,.hud .right{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
@@ -666,7 +679,7 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .rail{
   position:fixed;left:14px;top:50%;transform:translateY(-50%);z-index:3;
   display:flex;flex-direction:column;gap:7px;color:var(--ink-faint);
-  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.2em;
+  font-family:var(--f-crt);font-size:14px;letter-spacing:.12em;
   pointer-events:none;
 }
 .rail span{display:flex;align-items:center;gap:8px}
@@ -678,7 +691,7 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .vrt{
   position:fixed;right:18px;top:50%;transform:translateY(-50%) rotate(180deg);
   writing-mode:vertical-rl;text-orientation:mixed;
-  font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.5em;
+  font-family:var(--f-crt);font-size:15px;letter-spacing:.3em;
   color:var(--ink-faint);opacity:.7;z-index:3;pointer-events:none;
 }
 
@@ -696,16 +709,17 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
   background:linear-gradient(90deg, transparent, var(--cy), transparent);
   filter:blur(.5px);opacity:.6;
 }
-.brand{display:flex;flex-direction:column;gap:8px;min-width:0}
+.brand{display:flex;flex-direction:column;gap:12px;min-width:0}
 .brand .kicker{
-  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.4em;
-  color:var(--cy);text-shadow:0 0 12px rgba(0,240,255,.5);
+  font-family:var(--f-crt);font-size:16px;letter-spacing:.16em;
+  color:var(--cy);text-shadow:0 0 12px rgba(0,240,255,.5), 0 2px 6px rgba(0,0,0,.7);
 }
 .brand h1{
-  font-family:'Orbitron','Rajdhani',sans-serif;font-weight:900;
-  font-size:60px;line-height:1;margin:0;color:var(--ink);
-  letter-spacing:.04em;position:relative;text-shadow:0 0 24px rgba(0,240,255,.18);
-  display:flex;gap:.28em;flex-wrap:wrap;
+  font-family:var(--f-pixel);font-weight:400;
+  font-size:38px;line-height:1.1;margin:0;color:var(--ink);
+  letter-spacing:0;position:relative;
+  text-shadow:3px 3px 0 rgba(0,0,0,.5), 0 0 24px rgba(0,240,255,.25);
+  display:flex;gap:.34em;flex-wrap:wrap;
 }
 .brand h1 .accent{
   background:linear-gradient(180deg, #fff 0%, #ffd5e8 40%, #ff6cb6 100%);
@@ -713,14 +727,14 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
   filter:drop-shadow(0 0 18px rgba(255,62,165,.4));
 }
 .brand .sub{
-  font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;letter-spacing:.32em;
-  color:var(--ink-faint);
+  font-family:var(--f-crt);font-weight:400;font-size:17px;letter-spacing:.12em;
+  color:var(--ink-dim);text-shadow:0 1px 4px rgba(0,0,0,.6);
 }
-.brand .sub b{color:var(--mg);font-weight:600}
+.brand .sub b{color:var(--mg);font-weight:400}
 .head .actions{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 
 @media (max-width: 720px){
-  .brand h1{font-size:42px}
+  .brand h1{font-size:24px}
   .page{padding:24px 16px 80px}
   .hud{padding:10px 16px;font-size:10px;letter-spacing:.12em}
 }
@@ -729,14 +743,14 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .cyb-btn{
   --col:var(--cy);
   position:relative;display:inline-flex;align-items:center;gap:10px;
-  padding:13px 22px;background:rgba(0,240,255,.05);
-  color:var(--col);font-family:'Rajdhani',sans-serif;font-weight:600;
-  font-size:14px;letter-spacing:.18em;text-transform:uppercase;
-  border:1px solid color-mix(in oklab, var(--col), transparent 55%);
+  padding:13px 20px;background:rgba(10,14,30,.42);backdrop-filter:blur(8px);
+  color:var(--col);font-family:var(--f-dot);font-weight:400;
+  font-size:14px;letter-spacing:.04em;
+  border:1px solid color-mix(in oklab, var(--col), transparent 45%);
   cursor:pointer;transition:all .18s ease;white-space:nowrap;text-decoration:none;
   clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
 }
-.cyb-btn .zh{font-family:'Noto Sans SC';letter-spacing:.05em}
+.cyb-btn .zh{font-family:var(--f-dot);letter-spacing:.04em}
 .cyb-btn:hover{
   background:color-mix(in oklab, var(--col), transparent 82%);
   box-shadow:0 0 24px color-mix(in oklab, var(--col), transparent 65%),
@@ -755,38 +769,41 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .chips{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 28px}
 .chip{
   --col:var(--cy);
-  position:relative;display:inline-flex;align-items:center;gap:10px;
-  padding:10px 16px 10px 14px;
-  font-family:'Noto Sans SC';font-weight:500;font-size:14px;
+  position:relative;display:inline-flex;align-items:center;gap:11px;
+  padding:9px 14px 9px 16px;
+  font-family:var(--f-dot);font-weight:400;font-size:14px;
   color:var(--ink);cursor:pointer;user-select:none;
-  background:rgba(255,255,255,.02);
-  border:1px solid var(--line-strong);
-  transition:all .16s ease;
-  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  background:rgba(12,10,32,.42);backdrop-filter:blur(9px) saturate(1.1);
+  border:1px solid color-mix(in oklab,var(--col),transparent 48%);
+  transition:border-color .16s ease, box-shadow .16s ease, transform .16s ease, background .16s ease;
+  clip-path: polygon(13px 0, 100% 0, 100% calc(100% - 13px), calc(100% - 13px) 100%, 0 100%, 0 13px);
 }
 .chip .ic{
-  width:18px;height:18px;display:grid;place-items:center;color:var(--col);
-  filter:drop-shadow(0 0 6px color-mix(in oklab, var(--col), transparent 50%));
+  width:18px;height:18px;display:grid;place-items:center;color:var(--col);font-size:14px;
+  filter:drop-shadow(0 0 6px color-mix(in oklab, var(--col), transparent 55%));
 }
 .chip .ct{
-  font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--col);
-  padding:1px 7px;border:1px solid color-mix(in oklab, var(--col), transparent 60%);
-  background:color-mix(in oklab, var(--col), transparent 88%);
-  letter-spacing:.05em;
+  font-family:var(--f-pixel);font-size:9px;color:var(--col);
+  padding:5px 7px 4px;border:1px solid color-mix(in oklab,var(--col),transparent 50%);
+  background:color-mix(in oklab,var(--col),transparent 86%);letter-spacing:.02em;
+  clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px);
 }
-.chip:hover{border-color:color-mix(in oklab, var(--col), transparent 30%);background:color-mix(in oklab, var(--col), transparent 92%)}
+.chip:hover{transform:translateY(-1px);border-color:color-mix(in oklab,var(--col),transparent 22%);
+  box-shadow:0 0 18px color-mix(in oklab, var(--col), transparent 58%)}
 .chip.active{
-  background:color-mix(in oklab, var(--col), transparent 82%);
-  border-color:var(--col);color:#fff;
-  box-shadow:0 0 18px color-mix(in oklab, var(--col), transparent 70%),
-             inset 0 0 0 1px color-mix(in oklab, var(--col), transparent 55%);
+  background:linear-gradient(180deg, color-mix(in oklab, var(--col), white 16%), var(--col));
+  border-color:var(--col);color:#0a0414;
+  transform:translateY(-1px);
+  box-shadow:0 0 24px color-mix(in oklab, var(--col), transparent 50%), inset 0 0 0 1px rgba(255,255,255,.3);
 }
+.chip.active .ic{color:#0a0414;filter:none}
+.chip.active .ct{color:#0a0414;border-color:rgba(10,4,20,.4);background:rgba(255,255,255,.3)}
 
 /* Stamp */
 .stamp{
   display:flex;align-items:center;gap:14px;margin:6px 0 14px;
-  color:var(--ink-faint);font-family:'Share Tech Mono',monospace;
-  font-size:11px;letter-spacing:.32em;
+  color:var(--ink-dim);font-family:var(--f-crt);
+  font-size:15px;letter-spacing:.12em;
 }
 .stamp::before,.stamp::after{content:"";flex:1;height:1px;background:var(--line)}
 
@@ -798,10 +815,10 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
   --col:var(--cy);
   position:relative;padding:24px 28px 22px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.005)),
-    rgba(8,5,22,.55);
+    linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012)),
+    rgba(14,10,38,.40);
   border:1px solid var(--line-strong);
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(11px) saturate(1.15);
   transition:border-color .2s ease, transform .2s ease, box-shadow .2s ease;
   overflow:hidden;
 }
@@ -832,8 +849,8 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .crow{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:14px;flex-wrap:wrap}
 .ctag{
   display:inline-flex;align-items:center;gap:10px;
-  font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;
-  letter-spacing:.18em;text-transform:uppercase;color:var(--col);
+  font-family:var(--f-pixel);font-size:9px;font-weight:400;
+  letter-spacing:.04em;color:var(--col);
 }
 .ctag .glyph{
   width:22px;height:22px;display:grid;place-items:center;
@@ -841,11 +858,11 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
   background:color-mix(in oklab, var(--col), transparent 88%);
   filter:drop-shadow(0 0 6px color-mix(in oklab, var(--col), transparent 55%));
 }
-.ctag .zh{font-family:'Noto Sans SC';letter-spacing:.06em;color:var(--ink);font-weight:500;font-size:14px}
+.ctag .zh{font-family:var(--f-dot);letter-spacing:.04em;color:var(--ink);font-weight:400;font-size:15px}
 .ctag .div{color:var(--ink-faint);opacity:.5}
 .meta{
-  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.18em;
-  color:var(--ink-faint);display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+  font-family:var(--f-crt);font-size:16px;letter-spacing:.06em;
+  color:var(--ink-dim);display:flex;gap:14px;align-items:center;flex-wrap:wrap;
 }
 .meta .id{color:var(--col);opacity:.8}
 
@@ -865,11 +882,11 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 }
 .frow .show{
   background:transparent;border:none;padding:0;
-  font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;
-  letter-spacing:.22em;text-transform:uppercase;color:var(--col);
+  font-family:var(--f-dot);font-weight:400;font-size:13px;
+  letter-spacing:.04em;color:var(--col);
   cursor:pointer;display:inline-flex;align-items:center;gap:8px;
 }
-.frow .show .zh{font-family:'Noto Sans SC';letter-spacing:.05em;color:var(--ink-dim);font-weight:400;font-size:13px;text-transform:none}
+.frow .show .zh{font-family:var(--f-dot);letter-spacing:.04em;color:var(--ink-dim);font-weight:400;font-size:13px;text-transform:none}
 .frow .show:hover .zh{color:var(--col)}
 .frow .show .arr{transition:transform .2s}
 .frow .show:hover .arr{transform:translateX(3px)}
@@ -877,7 +894,7 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .acts{display:flex;gap:6px}
 .iact{
   background:transparent;color:var(--ink-faint);
-  font-family:'Noto Sans SC';font-size:12px;
+  font-family:var(--f-dot);font-size:12px;
   padding:6px 12px;border:1px solid transparent;cursor:pointer;
   transition:all .15s;letter-spacing:.06em;
 }
@@ -888,7 +905,7 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .panel{
   --col:var(--cy);
   position:relative;padding:18px 22px 16px;margin-bottom:24px;
-  background:rgba(8,5,22,.55);border:1px solid var(--line-strong);backdrop-filter:blur(6px);
+  background:rgba(14,10,38,.46);border:1px solid var(--line-strong);backdrop-filter:blur(11px) saturate(1.1);
   display:flex;flex-direction:column;gap:10px;
 }
 .panel .crn{position:absolute;width:12px;height:12px;border:1px solid var(--col);opacity:.5}
@@ -928,8 +945,8 @@ body{margin:0;background:var(--bg-0);color:var(--ink);font-family:'Noto Sans SC'
 .foot{
   margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
   display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.22em;
-  color:var(--ink-faint);
+  font-family:var(--f-crt);font-size:15px;letter-spacing:.1em;
+  color:var(--ink-dim);
 }
 
 /* Glitch */
