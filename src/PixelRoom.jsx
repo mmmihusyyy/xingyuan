@@ -370,10 +370,19 @@ export default function IsometricRoom({ stageIndex = 0, activity = "idle", hour 
         ); })()}
 
         {key === "out" && (() => { const mx = 120; return (
-          <g style={{ animation: "signS 3s ease-in-out infinite", transformBox: "fill-box", transformOrigin: "center" }}>
-            <line x1={mx} y1="100" x2={mx} y2="120" stroke="#caa06a" strokeWidth="1.2" />
-            <rect x={mx - 24} y="120" width="48" height="18" rx="3" fill="#fff4ea" stroke="#f0b9cd" strokeWidth="1.4" />
-            <text x={mx} y="132" fontSize="8" textAnchor="middle" fill="#e07090" fontFamily="'Noto Sans SC',sans-serif">🌳 外出中…</text>
+          <g>
+            {/* 墙上挂钩 */}
+            <circle cx={mx} cy="32" r="1.5" fill="#c8a06a" stroke={OL} strokeWidth="0.6" />
+            <g style={{ animation: "signS 3.4s ease-in-out infinite", transformBox: "view-box", transformOrigin: `${mx}px 32px` }}>
+              <line x1={mx} y1="32" x2={mx - 13} y2="47" stroke="#d9b0a0" strokeWidth="1" />
+              <line x1={mx} y1="32" x2={mx + 13} y2="47" stroke="#d9b0a0" strokeWidth="1" />
+              <rect x={mx - 27} y="46" width="54" height="26" rx="6" fill="#fff4ea" stroke="#e7a6c0" strokeWidth="1.8" />
+              <rect x={mx - 23} y="49" width="46" height="20" rx="4" fill="none" stroke="#f4c2d6" strokeWidth="0.8" strokeDasharray="2.2 1.8" />
+              {star(mx - 20, 55, 1.6, STAR, "os1", OL)}
+              {star(mx + 20, 55, 1.6, STAR, "os2", OL)}
+              <text x={mx} y="59" fontSize="8.5" textAnchor="middle" fill="#e07090" fontFamily="'Noto Sans SC',sans-serif" fontWeight="500">外出中</text>
+              <text x={mx} y="67.5" fontSize="5.5" textAnchor="middle" fill="#b58ab0" fontFamily="'Noto Sans SC',sans-serif">出去玩啦～🌳</text>
+            </g>
           </g>
         ); })()}
 
