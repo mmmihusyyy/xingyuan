@@ -1,429 +1,369 @@
 /* ═══════════════════════════════════════════
-   星海孕育 · KARA  ·  2.5D 像素小窝
-   QQ家园 style isometric pixel home
-   全部手绘 · 零外部素材 · inline SVG pixel art
-   Kara 像素少女 + 自主作息（吃饭/洗澡/睡觉/外出）
+   星海孕育 · KARA  ·  少女像素小窝 v2
+   QQ家园 / 养成游戏风 · 亮粉暖调正面卧室
+   紫发星之少女（Q版大眼睛）+ 自主作息 + 桌上盆栽 + 说话气泡
+   全部手绘 inline SVG · 零外部素材
    ═══════════════════════════════════════════ */
 
-/* ── 时段 → 调色 ── */
 function getTod(h) {
   if (h >= 5 && h < 7) return "dawn";
   if (h >= 7 && h < 17) return "day";
   if (h >= 17 && h < 19) return "sunset";
   return "night";
 }
-
-const ROOM_PAL = {
-  dawn:   { wallL: "#e8ccc4", wallR: "#d4ad9e", floor: "#c79b78", line: "#b07f57", trim: "#a86b5a", sky1: "#3a2b4e", sky2: "#c4748a", sky3: "#f0a878", sun: "#ffd9a0", sea: "#5a6f96" },
-  day:    { wallL: "#f5e7cd", wallR: "#e7d2ad", floor: "#ccab7d", line: "#b9925e", trim: "#9a6a4a", sky1: "#7ec8e3", sky2: "#aee0f2", sky3: "#d6f0fb", sun: "#fff3c4", sea: "#3a90b8" },
-  sunset: { wallL: "#efd2bf", wallR: "#e0b598", floor: "#c89a72", line: "#ad7d54", trim: "#955a44", sky1: "#3a2150", sky2: "#c4546d", sky3: "#f4a261", sun: "#ffd88a", sea: "#6a5a7c" },
-  night:  { wallL: "#3f3666", wallR: "#322a54", floor: "#473a5a", line: "#574a6c", trim: "#2a2342", sky1: "#0a0e1a", sky2: "#16203a", sky3: "#243456", sun: "#ffeec8", sea: "#16223e" },
+const SKY = {
+  dawn:   { a: "#f5c6a0", b: "#f7d9c0", c: "#fce8d8", sea: "#8fb4d6", sun: "#ffd9a0" },
+  day:    { a: "#9ad6f0", b: "#bfe8fa", c: "#e2f5ff", sea: "#76c0e0", sun: "#fff3c4" },
+  sunset: { a: "#e9a6b8", b: "#f3c2c0", c: "#f9ddc4", sea: "#9a86b4", sun: "#ffd88a" },
+  night:  { a: "#2a2750", b: "#3a3568", c: "#4a4480", sea: "#2a3560", sun: "#fdf0c8" },
 };
 
-/* ── 像素少女 Kara 网格（16×24） ── */
-const KARA_ROWS = [
-  "................",
-  "....HHHHHHHH....",
-  "...HHHHHHHHHH...",
-  "..HHHHHHHHHHHH..",
-  "..HHHHHHHHHHHHY.",
-  "..HHSSSSSSSSHH..",
-  "..HSSSSSSSSSSH..",
-  "..HSSEESSEESSH..",
-  "..HSSSSSSSSSSH..",
-  "..HSBSSSSSSBSH..",
-  "..HSSSmmSSSSSH..",
-  "..HHSSSSSSSSHH..",
-  "...HHSSSSSSHH...",
-  "..HHWWWWWWWWHH..",
-  "..HDDDDDDDDDDH..",
-  "..HDDDDYDDDDDH..",
-  "...DDDDDDDDDD...",
-  "..sDDDDDDDDDDs..",
-  "...DDDDDDDDDD...",
-  "...dDDDDDDDDd...",
-  "....DDDDDDDD....",
-  "....LL....LL....",
-  "....LL....LL....",
-  "....OO....OO....",
-];
+/* ── 调色 ── */
+const OL = "#46324f";
+const HAIR = "#b8a0e8", HAIRD = "#9a7fd2", HAIRH = "#e0d2f8";
+const SKIN = "#ffe1c6";
+const IRIS = "#7d5bcf", PUPIL = "#3c2a5c";
+const BLUSH = "#ffadc6", MOUTH = "#d96a88";
+const DRESS = "#f2ecff", DRESSD = "#ddd0f2";
+const STAR = "#ffd45e", ORB = "#bdeaf7";
+const TIGHTS = "#e9e0f8", SHOE = "#7e5cc6";
+const ACC = ["#f7b8d0", "#f6a6c6", "#f48fbc", "#f078ad", "#ee63a6"];
 
-// 睡觉用：闭眼 + 没有腿（盖被子）
-const KARA_SLEEP_HEAD = [
-  "................",
-  "....HHHHHHHH....",
-  "...HHHHHHHHHH...",
-  "..HHHHHHHHHHHH..",
-  "..HHHHHHHHHHHHY.",
-  "..HHSSSSSSSSHH..",
-  "..HSSSSSSSSSSH..",
-  "..HSSqqSSqqSSH..",
-  "..HSSSSSSSSSSH..",
-  "..HSBSSSSSSBSH..",
-  "..HSSSooSSSSSH..",
-  "..HHSSSSSSSSHH..",
-  "...HHSSSSSSHH...",
-];
+/* 星形 */
+const star = (cx, cy, r, fill, k, stroke) => (
+  <polygon key={k} points={[[0, -1], [0.23, -0.31], [0.95, -0.31], [0.37, 0.12], [0.59, 0.81], [0, 0.38], [-0.59, 0.81], [-0.37, 0.12], [-0.95, -0.31], [-0.23, -0.31]].map(([px, py]) => `${(cx + px * r).toFixed(1)},${(cy + py * r).toFixed(1)}`).join(" ")} fill={fill} stroke={stroke || "none"} strokeWidth="0.4" />
+);
 
-const DRESS_BY_STAGE = [
-  { D: "#f1aac6", d: "#d885a8" },
-  { D: "#ef98ba", d: "#cf74a0" },
-  { D: "#ea83aa", d: "#c75f88" },
-  { D: "#e66b9e", d: "#bf5184" },
-  { D: "#e257a6", d: "#b53e8e" },
-];
-
-function karaPalette(stageIdx) {
-  const ds = DRESS_BY_STAGE[Math.max(0, Math.min(4, stageIdx))];
-  return {
-    H: "#3b2c66", S: "#ffd9bd", s: "#eeb592", E: "#332a44", q: "#7a5a6a",
-    B: "#ff9fbb", m: "#d76a86", o: "#d76a86", W: "#fff4fb",
-    D: ds.D, d: ds.d, Y: "#ffd45e", L: "#ffd9bd", O: "#6a4d92",
-  };
-}
-
-function pixelRects(rows, pal, key) {
-  const out = [];
-  rows.forEach((row, y) => {
-    for (let x = 0; x < row.length; x++) {
-      const c = row[x];
-      const col = pal[c];
-      if (col) out.push(<rect key={`${key}-${x}-${y}`} x={x} y={y} width="1.03" height="1.03" fill={col} />);
-    }
-  });
-  return out;
-}
-
-/* ── 等距投影 ── */
-// 后角(back) = (100,52)，floor 半宽 80，半高 44，墙高 48
-const P  = (u, v) => [100 + 80 * u - 80 * v, 52 + 44 * u + 44 * v]; // floor
-const PR = (u, v) => [100 + 80 * u, 52 + 44 * u - 48 * v];          // 右墙
-const PL = (u, v) => [100 - 80 * u, 52 + 44 * u - 48 * v];          // 左墙
-const s = (p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`;
-const up = (p, h) => [p[0], p[1] - h];
-const poly = (pts, fill, extra = {}) => <polygon points={pts.map(s).join(" ")} fill={fill} {...extra} />;
-
-/* ── 像素少女组件（嵌进房间 SVG，自带站立/外出抖动） ── */
-function KaraSprite({ stageIdx, fx, fy }) {
-  const pal = karaPalette(stageIdx);
-  const sc = 1.5 + Math.max(0, Math.min(4, stageIdx)) * 0.07;
-  const tx = fx - 8 * sc;
-  const ty = fy - 24 * sc;
-  const auraOp = 0.12 + stageIdx * 0.06;
+/* ── 紫发星之少女（矢量 Q 版，本地 viewBox 40×56，脚在 (20,54)） ── */
+function KaraSprite({ stageIdx = 0, fx, fy, scale = 0.9 }) {
+  const st = Math.max(0, Math.min(4, stageIdx));
+  const sc = scale * (1 + st * 0.03);
+  const acc = ACC[st];
   return (
-    <g transform={`translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${sc.toFixed(3)})`}>
-      <ellipse cx="8" cy="23.5" rx="6.5" ry="1.8" fill="rgba(0,0,0,0.22)" />
-      <ellipse cx="8" cy="12" rx="11" ry="13" fill="url(#karaAura)" opacity={auraOp} />
-      <g className="kara-bob" shapeRendering="crispEdges">
-        {pixelRects(KARA_ROWS, pal, "k")}
-        {/* 星灵阶段：星之冠 */}
-        {stageIdx >= 4 && (
-          <g>
-            <rect x="4" y="0" width="1.2" height="1.2" fill="#ffe07a" />
-            <rect x="7.4" y="-1.2" width="1.4" height="1.4" fill="#fff0a8" />
-            <rect x="11" y="0" width="1.2" height="1.2" fill="#ffe07a" />
-          </g>
-        )}
+    <g transform={`translate(${(fx - 20 * sc).toFixed(1)},${(fy - 54 * sc).toFixed(1)}) scale(${sc.toFixed(3)})`}>
+      <ellipse cx="20" cy="53.5" rx="11" ry="2.2" fill="rgba(140,110,150,0.22)" />
+      <ellipse cx="20" cy="24" rx="17" ry="20" fill="url(#karaAura)" opacity={0.1 + st * 0.05} />
+      <g className="kara-bob">
+        {/* 后发 */}
+        <path d="M20,6 C8,6 5,16 6,26 C6,34 8,43 11,47 L29,47 C32,43 34,34 34,26 C35,16 32,6 20,6 Z" fill={HAIR} stroke={OL} strokeWidth="1.1" />
+        {/* 身体：袖子 / 裙子 / 手脚 */}
+        <ellipse cx="10" cy="40" rx="3.6" ry="3.1" fill={DRESS} stroke={OL} strokeWidth="0.8" />
+        <ellipse cx="30" cy="40" rx="3.6" ry="3.1" fill={DRESS} stroke={OL} strokeWidth="0.8" />
+        <path d="M13,37 C13,35 27,35 27,37 L31,51 C20,54 9,51 9,51 Z" fill={DRESS} stroke={OL} strokeWidth="1" />
+        <path d="M21,36 L22.5,51 L20,51 Z" fill={DRESSD} opacity="0.5" />
+        <path d="M9,51 q2.7,2 5.5,0 q2.7,2 5.5,0 q2.7,2 5.5,0 q2.7,2 5,0" fill={DRESS} stroke={OL} strokeWidth="0.7" />
+        <circle cx="8.6" cy="43" r="1.8" fill={SKIN} stroke={OL} strokeWidth="0.6" />
+        <circle cx="31.4" cy="43" r="1.8" fill={SKIN} stroke={OL} strokeWidth="0.6" />
+        <rect x="16.6" y="49.5" width="3" height="4.2" rx="1" fill={TIGHTS} stroke={OL} strokeWidth="0.6" />
+        <rect x="20.4" y="49.5" width="3" height="4.2" rx="1" fill={TIGHTS} stroke={OL} strokeWidth="0.6" />
+        <ellipse cx="18" cy="54" rx="2.3" ry="1.4" fill={SHOE} stroke={OL} strokeWidth="0.6" />
+        <ellipse cx="22" cy="54" rx="2.3" ry="1.4" fill={SHOE} stroke={OL} strokeWidth="0.6" />
+        {/* 领子 + 胸前蝴蝶结 + 星 */}
+        <ellipse cx="20" cy="36" rx="5" ry="2" fill="#ffffff" stroke={OL} strokeWidth="0.8" />
+        {star(20, 41, 2.4, STAR, "cs", OL)}
+        <path d="M20,36 L16,34 L16,38 Z" fill={acc} stroke={OL} strokeWidth="0.5" />
+        <path d="M20,36 L24,34 L24,38 Z" fill={acc} stroke={OL} strokeWidth="0.5" />
+        <circle cx="20" cy="36" r="1" fill={acc} stroke={OL} strokeWidth="0.4" />
+        {/* 脸 */}
+        <ellipse cx="20" cy="22" rx="11" ry="11.5" fill={SKIN} stroke={OL} strokeWidth="1.1" />
+        {/* 前侧发束 + 发饰星 */}
+        <path d="M9,16 C7,24 8,34 10,40 C7.5,34 6.2,24 8,16 Z" fill={HAIR} stroke={OL} strokeWidth="0.9" />
+        <path d="M31,16 C33,24 32,34 30,40 C32.5,34 33.8,24 32,16 Z" fill={HAIR} stroke={OL} strokeWidth="0.9" />
+        {star(10, 30, 1.6, STAR, "hl", OL)}
+        {star(30, 30, 1.6, STAR, "hr", OL)}
+        {/* 刘海 */}
+        <path d="M9,17 C9,9 13,6 20,6 C27,6 31,9 31,17 C28,13 24,12 20,16 C16,12 12,13 9,17 Z" fill={HAIR} stroke={OL} strokeWidth="1.1" />
+        <ellipse cx="15" cy="12" rx="4" ry="2" fill={HAIRH} opacity="0.6" />
+        {/* 眼睛（大） */}
+        <path d="M12.3,20.4 Q15,19.2 17.7,20.4" stroke={OL} strokeWidth="0.9" fill="none" strokeLinecap="round" />
+        <ellipse cx="15" cy="22.6" rx="2.7" ry="3.3" fill="#fff" stroke={OL} strokeWidth="0.8" />
+        <circle cx="15" cy="23" r="2.3" fill={IRIS} />
+        <circle cx="15" cy="23.4" r="1.1" fill={PUPIL} />
+        <circle cx="16.1" cy="21.7" r="0.9" fill="#fff" />
+        <circle cx="14" cy="24" r="0.5" fill="#fff" opacity="0.8" />
+        <path d="M22.3,20.4 Q25,19.2 27.7,20.4" stroke={OL} strokeWidth="0.9" fill="none" strokeLinecap="round" />
+        <ellipse cx="25" cy="22.6" rx="2.7" ry="3.3" fill="#fff" stroke={OL} strokeWidth="0.8" />
+        <circle cx="25" cy="23" r="2.3" fill={IRIS} />
+        <circle cx="25" cy="23.4" r="1.1" fill={PUPIL} />
+        <circle cx="26.1" cy="21.7" r="0.9" fill="#fff" />
+        <circle cx="24" cy="24" r="0.5" fill="#fff" opacity="0.8" />
+        {/* 腮红 + 嘴 */}
+        <ellipse cx="10.6" cy="25.6" rx="2" ry="1.3" fill={BLUSH} opacity="0.85" />
+        <ellipse cx="29.4" cy="25.6" rx="2" ry="1.3" fill={BLUSH} opacity="0.85" />
+        <path d="M18.6,28 Q20,29.8 21.4,28" stroke={MOUTH} strokeWidth="0.9" fill="none" strokeLinecap="round" />
+        {/* 头顶星球 */}
+        <line x1="20" y1="7" x2="20" y2="3.5" stroke={OL} strokeWidth="0.8" />
+        <circle cx="20" cy="3" r="4" fill={STAR} opacity="0.25" />
+        <circle cx="20" cy="3" r="2.6" fill={ORB} stroke={OL} strokeWidth="0.8" />
+        {star(20, 3, 1.5, STAR, "orbs", OL)}
+        {st >= 4 && (<g>{star(13, 7, 1.4, STAR, "cr1", OL)}{star(27, 7, 1.4, STAR, "cr2", OL)}</g>)}
       </g>
     </g>
   );
 }
 
-/* ── 主组件：等距像素房间 ── */
+/* ── 闭眼小脑袋（洗澡 / 睡觉用） ── */
+function SleepHead({ cx, cy, scale = 1 }) {
+  return (
+    <g transform={`translate(${cx},${cy}) scale(${scale})`}>
+      <circle cx="0" cy="-1" r="9" fill={HAIR} stroke={OL} strokeWidth="0.9" />
+      <circle cx="0" cy="1" r="7.5" fill={SKIN} stroke={OL} strokeWidth="0.9" />
+      <path d="M-7,-2 C-7,-8 7,-8 7,-2 C3,-5 -3,-5 -7,-2 Z" fill={HAIR} stroke={OL} strokeWidth="0.9" />
+      <path d="M-5,2 Q-3.4,3.6 -1.8,2" stroke={OL} strokeWidth="0.8" fill="none" strokeLinecap="round" />
+      <path d="M1.8,2 Q3.4,3.6 5,2" stroke={OL} strokeWidth="0.8" fill="none" strokeLinecap="round" />
+      <ellipse cx="-5" cy="4" rx="1.7" ry="1.1" fill={BLUSH} opacity="0.85" />
+      <ellipse cx="5" cy="4" rx="1.7" ry="1.1" fill={BLUSH} opacity="0.85" />
+      <path d="M-1.4,5 Q0,6.4 1.4,5" stroke={MOUTH} strokeWidth="0.8" fill="none" strokeLinecap="round" />
+      <line x1="0" y1="-9" x2="0" y2="-12" stroke={OL} strokeWidth="0.7" />
+      <circle cx="0" cy="-12.6" r="2" fill={ORB} stroke={OL} strokeWidth="0.7" />
+      {star(0, -12.6, 1.1, STAR, "shs", OL)}
+    </g>
+  );
+}
+
+/* 家具小工具 */
+const bear = (cx, cy, col, k) => (
+  <g key={k}>
+    <circle cx={cx - 3} cy={cy - 3} r="2.1" fill={col} />
+    <circle cx={cx + 3} cy={cy - 3} r="2.1" fill={col} />
+    <circle cx={cx} cy={cy} r="4.6" fill={col} />
+    <circle cx={cx} cy={cy + 0.6} r="2.2" fill="#fff3f8" />
+    <circle cx={cx - 1.6} cy={cy - 0.8} r="0.6" fill="#5a3a4a" />
+    <circle cx={cx + 1.6} cy={cy - 0.8} r="0.6" fill="#5a3a4a" />
+    <circle cx={cx} cy={cy + 0.4} r="0.5" fill="#5a3a4a" />
+  </g>
+);
+const frame = (x, y, w, h, k, inner) => (
+  <g key={k}>
+    <rect x={x} y={y} width={w} height={h} rx="1" fill="#f6e7cf" stroke="#e3b98f" strokeWidth="0.8" />
+    <rect x={x + 1.4} y={y + 1.4} width={w - 2.8} height={h - 2.8} fill={inner || "#cfe7f2"} />
+  </g>
+);
+
+/* ── 主组件：少女像素卧室 ── */
 export default function IsometricRoom({ stageIndex = 0, activity = "idle", hour = 12, plantStage = "bud", onPlantClick, speech = "", showSpeech = false }) {
   const tod = getTod(hour);
-  const c = ROOM_PAL[tod];
+  const sky = SKY[tod];
   const isNight = tod === "night";
-  const key = activity; // sleep / eat / bath / out / idle
-
-  // Kara 站位
-  const idlePos = P(0.5, 0.5);
-  const eatPos = P(0.34, 0.6);
-  const standY = -2; // 抬一点让脚踩在地毯上
+  const key = activity;
+  const standing = key === "idle" || key === "eat";
 
   return (
-    <div style={{ position: "relative", width: "100%", aspectRatio: "200 / 158", margin: "0 auto" }}>
+    <div style={{ position: "relative", width: "100%", aspectRatio: "280 / 176", margin: "0 auto", borderRadius: "12px", overflow: "hidden" }}>
       <style>{`
-        @keyframes karaBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-0.7px); } }
-        .kara-bob { animation: karaBob 2.4s ease-in-out infinite; transform-box: fill-box; }
-        @keyframes zzzFloat { 0% { opacity: 0; transform: translate(0,0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(5px,-14px); } }
-        @keyframes steamRise { 0% { opacity: 0; transform: translateY(0) scale(1); } 40% { opacity: .6; } 100% { opacity: 0; transform: translateY(-12px) scale(1.6); } }
-        @keyframes bubblePop { 0%,100% { transform: translateY(0); opacity:.5; } 50% { transform: translateY(-2px); opacity:.9; } }
-        @keyframes yumBounce { 0%,100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-2px) rotate(6deg); } }
-        @keyframes lampGlow { 0%,100% { opacity:.55; } 50% { opacity:.85; } }
-        @keyframes signSway { 0%,100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
-        @keyframes starTwk { 0%,100% { opacity:.35; } 50% { opacity:1; } }
-        @keyframes plantHint { 0%,100% { opacity:.25; } 50% { opacity:.9; } }
-        @keyframes speechPop { 0% { opacity:0; transform: translateX(-50%) translateY(4px) scale(.9); } 100% { opacity:1; transform: translateX(-50%) translateY(0) scale(1); } }
+        @keyframes karaBob { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-0.6px);} }
+        .kara-bob { animation: karaBob 2.6s ease-in-out infinite; transform-box: fill-box; }
+        @keyframes zzzF { 0%{opacity:0;transform:translate(0,0);} 30%{opacity:1;} 100%{opacity:0;transform:translate(5px,-14px);} }
+        @keyframes steamR { 0%{opacity:0;transform:translateY(0) scale(1);} 40%{opacity:.6;} 100%{opacity:0;transform:translateY(-12px) scale(1.6);} }
+        @keyframes bubP { 0%,100%{transform:translateY(0);opacity:.5;} 50%{transform:translateY(-2px);opacity:.9;} }
+        @keyframes yumB { 0%,100%{transform:translateY(0) rotate(-6deg);} 50%{transform:translateY(-2px) rotate(6deg);} }
+        @keyframes lampG { 0%,100%{opacity:.5;} 50%{opacity:.85;} }
+        @keyframes signS { 0%,100%{transform:rotate(-2deg);} 50%{transform:rotate(2deg);} }
+        @keyframes twk { 0%,100%{opacity:.35;} 50%{opacity:1;} }
+        @keyframes hintP { 0%,100%{opacity:.25;} 50%{opacity:.9;} }
+        @keyframes speechPop { 0%{opacity:0;transform:translateX(-50%) translateY(4px) scale(.9);} 100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);} }
       `}</style>
 
-      <svg viewBox="0 0 200 158" width="100%" height="100%" style={{ display: "block", imageRendering: "pixelated" }}>
+      <svg viewBox="0 0 280 176" width="100%" height="100%" style={{ display: "block", imageRendering: "pixelated" }}>
         <defs>
           <radialGradient id="karaAura" cx="50%" cy="45%" r="55%">
-            <stop offset="0%" stopColor="#ffd6ea" />
-            <stop offset="60%" stopColor="#ffb3d6" />
-            <stop offset="100%" stopColor="rgba(255,179,214,0)" />
+            <stop offset="0%" stopColor="#fff0f7" />
+            <stop offset="60%" stopColor="#ffc9e2" />
+            <stop offset="100%" stopColor="rgba(255,201,226,0)" />
           </radialGradient>
           <linearGradient id="winSky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={c.sky1} />
-            <stop offset="55%" stopColor={c.sky2} />
-            <stop offset="100%" stopColor={c.sky3} />
+            <stop offset="0%" stopColor={sky.a} />
+            <stop offset="55%" stopColor={sky.b} />
+            <stop offset="100%" stopColor={sky.c} />
           </linearGradient>
           <radialGradient id="lampLight" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(255,224,150,0.55)" />
+            <stop offset="0%" stopColor="rgba(255,224,150,0.5)" />
             <stop offset="100%" stopColor="rgba(255,224,150,0)" />
           </radialGradient>
         </defs>
 
-        {/* ── 房间外背景（柔和） ── */}
-        <rect x="0" y="0" width="200" height="158" fill={isNight ? "#0a0c16" : "#1a1426"} />
-
-        {/* ── 左墙 ── */}
-        {poly([PL(0, 0), PL(1, 0), PL(1, 1), PL(0, 1)], c.wallL)}
-        {/* ── 右墙 ── */}
-        {poly([PR(0, 0), PR(1, 0), PR(1, 1), PR(0, 1)], c.wallR)}
-        {/* 墙脚踢脚线 */}
-        {poly([PL(0, 0.04), PL(1, 0.04), PL(1, 0), PL(0, 0)], c.trim)}
-        {poly([PR(0, 0.04), PR(1, 0.04), PR(1, 0), PR(0, 0)], c.trim)}
-
-        {/* ── 地板 ── */}
-        {poly([P(0, 0), P(1, 0), P(1, 1), P(0, 1)], c.floor)}
-        {/* 地板木纹格 */}
-        {[0.2, 0.4, 0.6, 0.8].map((t) => (
-          <g key={`fl-${t}`}>
-            <line x1={P(t, 0)[0]} y1={P(t, 0)[1]} x2={P(t, 1)[0]} y2={P(t, 1)[1]} stroke={c.line} strokeWidth="0.6" opacity="0.5" />
-            <line x1={P(0, t)[0]} y1={P(0, t)[1]} x2={P(1, t)[0]} y2={P(1, t)[1]} stroke={c.line} strokeWidth="0.6" opacity="0.5" />
-          </g>
-        ))}
-
-        {/* ── 窗（右墙，看海） ── */}
-        <g>
-          {poly([PR(0.16, 0.34), PR(0.66, 0.34), PR(0.66, 0.86), PR(0.16, 0.86)], "#fff7ec")}
-          {poly([PR(0.2, 0.4), PR(0.62, 0.4), PR(0.62, 0.82), PR(0.2, 0.82)], "url(#winSky)")}
-          {/* 海平线 */}
-          {poly([PR(0.2, 0.4), PR(0.62, 0.4), PR(0.62, 0.55), PR(0.2, 0.55)], c.sea, { opacity: 0.92 })}
-          {/* 太阳/月亮 */}
-          {(() => { const m = PR(0.5, 0.66); return <circle cx={m[0]} cy={m[1]} r="3.4" fill={c.sun} opacity="0.95" />; })()}
-          {/* 窗格十字 */}
-          <line x1={PR(0.41, 0.4)[0]} y1={PR(0.41, 0.4)[1]} x2={PR(0.41, 0.82)[0]} y2={PR(0.41, 0.82)[1]} stroke="#fff7ec" strokeWidth="1.1" />
-          <line x1={PR(0.2, 0.61)[0]} y1={PR(0.2, 0.61)[1]} x2={PR(0.62, 0.61)[0]} y2={PR(0.62, 0.61)[1]} stroke="#fff7ec" strokeWidth="1.1" />
-          {/* 夜晚窗外星星 */}
-          {isNight && [[0.28, 0.74], [0.55, 0.78], [0.36, 0.68]].map((p, i) => {
-            const q = PR(p[0], p[1]);
-            return <rect key={`ws-${i}`} x={q[0]} y={q[1]} width="0.9" height="0.9" fill="#fff" style={{ animation: `starTwk ${2 + i}s ease-in-out infinite` }} />;
-          })}
-        </g>
-
-        {/* ── 左墙：相框 K♡ ── */}
-        <g>
-          {poly([PL(0.66, 0.5), PL(0.86, 0.5), PL(0.86, 0.74), PL(0.66, 0.74)], "#caa46a")}
-          {poly([PL(0.69, 0.54), PL(0.83, 0.54), PL(0.83, 0.7), PL(0.69, 0.7)], isNight ? "#2a3550" : "#cfe6f2")}
-          {(() => { const m = PL(0.76, 0.62); return <text x={m[0]} y={m[1] + 2} fontSize="6" fill="#e87fa6" textAnchor="middle" fontFamily="serif" fontStyle="italic">K♡</text>; })()}
-        </g>
-
-        {/* ── 左墙：书架 ── */}
-        <g>
-          {poly([PL(0.16, 0.06), PL(0.5, 0.06), PL(0.5, 0.62), PL(0.16, 0.62)], c.trim)}
-          {[0.18, 0.34, 0.5].map((vv, r) => (
-            <g key={`shelf-${r}`}>
-              {poly([PL(0.18, vv), PL(0.48, vv), PL(0.48, vv + 0.13), PL(0.18, vv + 0.13)], isNight ? "#241d3a" : "#8a6a52")}
-              {[0.2, 0.27, 0.34, 0.41].map((uu, b) => {
-                const cols = ["#d9686f", "#6f8fd9", "#d9b86f", "#7fc08a"];
-                return <polygon key={`bk-${r}-${b}`} points={`${s(PL(uu, vv + 0.005))} ${s(PL(uu + 0.05, vv + 0.005))} ${s(PL(uu + 0.05, vv + 0.12))} ${s(PL(uu, vv + 0.12))}`} fill={cols[(r + b) % 4]} opacity={isNight ? 0.7 : 1} />;
-              })}
-            </g>
-          ))}
-        </g>
-
-        {/* ── 吊灯 ── */}
-        <g>
-          <line x1="100" y1="4" x2="100" y2="20" stroke={c.trim} strokeWidth="1" />
-          <ellipse cx="100" cy="22" rx="6" ry="3.2" fill={isNight ? "#ffe7a8" : "#f0e0c0"} />
-          {isNight && <circle cx="100" cy="26" r="26" fill="url(#lampLight)" style={{ animation: "lampGlow 4s ease-in-out infinite" }} />}
-        </g>
-
-        {/* ── 星星挂旗 ── */}
-        {[0.12, 0.3, 0.7, 0.88].map((t, i) => {
-          const q = i < 2 ? PL(0.5 + (t - 0.2), 0.92) : PR(t - 0.1, 0.92);
-          return <text key={`gar-${i}`} x={q[0]} y={q[1]} fontSize="5" textAnchor="middle" opacity="0.85">⭐</text>;
+        {/* 墙 + 地板 */}
+        <rect x="0" y="0" width="280" height="122" fill="#fdf4ef" />
+        {Array.from({ length: 36 }, (_, i) => {
+          const gx = (i % 9) * 32 + 14 + (Math.floor(i / 9) % 2) * 14;
+          const gy = Math.floor(i / 9) * 26 + 12;
+          return <g key={`fl-${i}`} opacity="0.5"><circle cx={gx} cy={gy} r="0.9" fill="#f3c6d8" /><circle cx={gx + 2} cy={gy + 2} r="0.6" fill="#f7d7a0" /></g>;
         })}
+        <rect x="0" y="116" width="280" height="6" fill="#f0b9cd" />
+        <rect x="0" y="122" width="280" height="54" fill="#f4e6d6" />
+        {[122, 134, 148, 164].map((yy, i) => <line key={`fhz-${i}`} x1="0" y1={yy} x2="280" y2={yy} stroke="#e8cdb6" strokeWidth="0.7" opacity="0.6" />)}
+        {Array.from({ length: 11 }, (_, i) => <line key={`fv-${i}`} x1={i * 28} y1="122" x2={i * 28 - 16} y2="176" stroke="#e8cdb6" strokeWidth="0.7" opacity="0.5" />)}
 
-        {/* ── 地毯 ── */}
-        {poly([P(0.24, 0.32), P(0.78, 0.32), P(0.78, 0.82), P(0.24, 0.82)], isNight ? "#5a4a72" : "#d98aa8", { opacity: 0.85 })}
-        {poly([P(0.32, 0.4), P(0.7, 0.4), P(0.7, 0.74), P(0.32, 0.74)], isNight ? "#6a5a84" : "#ecb3c8", { opacity: 0.7 })}
+        {/* 窗（看海） */}
+        <g>
+          <rect x="8" y="12" width="46" height="44" rx="2" fill="#fff" stroke="#f0b9cd" strokeWidth="1.5" />
+          <rect x="11" y="15" width="40" height="38" fill="url(#winSky)" />
+          <rect x="11" y="40" width="40" height="13" fill={sky.sea} opacity="0.9" />
+          <circle cx="40" cy="26" r="4" fill={sky.sun} opacity="0.95" />
+          {isNight && [[18, 22], [30, 19], [44, 33]].map((p, i) => <rect key={`ws-${i}`} x={p[0]} y={p[1]} width="1" height="1" fill="#fff" style={{ animation: `twk ${2 + i}s ease-in-out infinite` }} />)}
+          <line x1="31" y1="15" x2="31" y2="53" stroke="#fff" strokeWidth="1.4" />
+          <line x1="11" y1="34" x2="51" y2="34" stroke="#fff" strokeWidth="1.4" />
+          <path d="M6,10 q4,4 0,40 q-5,-20 0,-40" fill="#f7c2d6" />
+          <path d="M56,10 q-4,4 0,40 q5,-20 0,-40" fill="#f7c2d6" />
+          <rect x="22" y="50" width="6" height="5" fill="#e89a6a" /><circle cx="25" cy="48" r="3" fill="#7fc06a" />
+        </g>
 
-        {/* ── 床（后右角） ── */}
+        {/* 墙面装饰 */}
+        {star(120, 16, 7, "#f48fc0", "wstar", "#e070a8")}
+        <g><circle cx="256" cy="14" r="7" fill="#ffe79e" /><circle cx="259" cy="12" r="6" fill="#fdf4ef" /></g>
+        <g><circle cx="210" cy="18" r="6.5" fill="#fff" stroke="#f0b9cd" strokeWidth="1.2" /><line x1="210" y1="18" x2="210" y2="14" stroke="#7a5a6a" strokeWidth="0.9" /><line x1="210" y1="18" x2="213" y2="19" stroke="#7a5a6a" strokeWidth="0.9" /></g>
+        {frame(70, 12, 14, 12, "fr1", "#cfe7f2")}<text x="77" y="22" fontSize="7" textAnchor="middle">🐟</text>
+        {frame(90, 28, 12, 14, "fr2", "#fde2ec")}<text x="96" y="38" fontSize="6" textAnchor="middle">🐱</text>
+        {frame(150, 10, 13, 11, "fr3", "#e7f2d8")}
+        {frame(176, 12, 12, 12, "fr4", "#fdeccf")}<text x="182" y="22" fontSize="6" textAnchor="middle">🦒</text>
+        {[60, 88, 116, 144].map((x, i) => star(x, 6 + (i % 2) * 3, 2.4, "#ffd45e", `g-${i}`))}
+        <rect x="226" y="44" width="50" height="2.4" fill="#e8b98f" />
+        {[232, 244, 256, 268].map((x, i) => <g key={`plnt-${i}`}><rect x={x - 2.5} y="38" width="5" height="6" fill={["#f4a8c4", "#bcd0ea", "#f7d7a0", "#a8d8b0"][i]} /><circle cx={x} cy="36" r="2.6" fill="#7fc06a" /></g>)}
+
+        {/* 衣柜 + 吉他 + 书堆 */}
+        <g>
+          <rect x="6" y="48" width="48" height="68" rx="2" fill="#f2a4c0" stroke="#dd86a8" strokeWidth="1" />
+          <rect x="6" y="48" width="48" height="6" fill="#ee93b4" />
+          <line x1="30" y1="56" x2="30" y2="114" stroke="#dd86a8" strokeWidth="1" />
+          <rect x="26" y="78" width="2" height="8" rx="1" fill="#fff3f8" /><rect x="32" y="78" width="2" height="8" rx="1" fill="#fff3f8" />
+          <rect x="10" y="58" width="16" height="2" fill="#cfe7f2" />
+          {[12, 16, 20].map((x, i) => <rect key={`cl-${i}`} x={x} y="60" width="3" height="7" fill={["#bcd0ea", "#f7d7a0", "#a8d8b0"][i]} />)}
+        </g>
+        <g transform="translate(2,72) rotate(-12 6 30)">
+          <rect x="5" y="0" width="2" height="26" fill="#caa06a" />
+          <ellipse cx="6" cy="30" rx="6.5" ry="8" fill="#e8b98f" stroke="#caa06a" strokeWidth="1" />
+          <circle cx="6" cy="30" r="2.2" fill="#7a5240" />
+        </g>
+        {[0, 1, 2].map((i) => <rect key={`bks-${i}`} x={10 + i} y={150 - i * 3} width="18" height="3" fill={["#f4a8c4", "#bcd0ea", "#f7d7a0"][i]} />)}
+
+        {/* 小床 + 小羊 */}
+        <g>
+          <rect x="60" y="98" width="72" height="22" rx="2" fill="#f6e4c8" stroke="#e3b98f" strokeWidth="1" />
+          {[78, 100].map((x, i) => <rect key={`bd-${i}`} x={x} y="104" width="2" height="3" rx="1" fill="#caa06a" />)}
+          <rect x="60" y="76" width="9" height="24" rx="2" fill="#f2a4c0" />
+          <rect x="68" y="86" width="62" height="14" rx="2" fill="#fff6fb" />
+          <rect x="84" y="88" width="46" height="13" rx="2" fill="#f6df9f" />
+          <rect x="70" y="83" width="16" height="11" rx="3" fill="#fff" stroke="#f0d6e0" strokeWidth="0.6" />
+          <g><ellipse cx="100" cy="83" rx="7" ry="5" fill="#fff" /><circle cx="106" cy="82" r="3" fill="#f0e8ee" /><circle cx="107" cy="81" r="0.5" fill="#5a3a4a" /><circle cx="98" cy="80" r="2.5" fill="#fff" /><circle cx="103" cy="79" r="2.5" fill="#fff" /></g>
+        </g>
+        {/* 小兔 + 礼物 */}
+        <g><ellipse cx="138" cy="138" rx="5" ry="6" fill="#f7c2d6" /><ellipse cx="135" cy="129" rx="1.6" ry="4" fill="#f7c2d6" /><ellipse cx="141" cy="129" rx="1.6" ry="4" fill="#f7c2d6" /><circle cx="136.5" cy="137" r="0.6" fill="#5a3a4a" /><circle cx="139.5" cy="137" r="0.6" fill="#5a3a4a" /></g>
+        <g><rect x="146" y="146" width="10" height="9" fill="#bcd0ea" /><rect x="150" y="146" width="2" height="9" fill="#fff" /><rect x="146" y="149" width="10" height="2" fill="#fff" /></g>
+
+        {/* 书桌 + 笔记本 + 椅子 */}
+        <g>
+          <path d="M120,100 L168,100 L162,120 L126,120 Z" fill="#f7c8da" />
+          <rect x="120" y="96" width="48" height="5" rx="1.5" fill="#fff0f6" stroke="#f0b9cd" strokeWidth="0.6" />
+          <rect x="132" y="86" width="14" height="10" rx="1" fill="#cfd8e6" stroke="#9aa8c0" strokeWidth="0.6" />
+          <rect x="133" y="87" width="12" height="7" fill={isNight ? "#3a4a6a" : "#bfe0f0"} />
+          <rect x="150" y="88" width="5" height="7" fill="#e89a6a" /><circle cx="152.5" cy="86" r="2.6" fill="#7fc06a" />
+          <rect x="150" y="104" width="10" height="3" rx="1" fill="#f2a4c0" /><rect x="158" y="100" width="2.5" height="14" fill="#f2a4c0" /><rect x="151" y="107" width="2" height="9" fill="#ee93b4" />
+        </g>
+
+        {/* 沙发 + 小熊 + 蓝抽屉柜 */}
+        <g>
+          <rect x="174" y="82" width="84" height="14" rx="3" fill="#f4b0cc" />
+          {[188, 204, 220, 236, 250].map((x, i) => <path key={`ht-${i}`} d={`M${x},88 q1.5,-2 3,0 q-1.5,2.5 -1.5,2.5 q0,0 -1.5,-2.5`} fill="#fff3f8" opacity="0.8" />)}
+          <rect x="172" y="94" width="88" height="16" rx="3" fill="#f2a4c0" />
+          <rect x="170" y="92" width="6" height="20" rx="2" fill="#ee93b4" /><rect x="256" y="92" width="6" height="20" rx="2" fill="#ee93b4" />
+          {bear(196, 96, "#f4a8c4", "bear1")}
+          {bear(216, 96, "#bcd0ea", "bear2")}
+          {bear(236, 96, "#f7c2d6", "bear3")}
+        </g>
+        <g>
+          <rect x="244" y="58" width="30" height="34" rx="2" fill="#bcd0ea" stroke="#9ab0d0" strokeWidth="1" />
+          {[66, 76, 86].map((y, i) => <g key={`drw-${i}`}><line x1="244" y1={y} x2="274" y2={y} stroke="#9ab0d0" strokeWidth="0.8" /><circle cx="259" cy={y + 4} r="1" fill="#fff" /></g>)}
+          <g><circle cx="259" cy="52" r="4" fill="#d9a86a" /><circle cx="255" cy="50" r="1.6" fill="#d9a86a" /><circle cx="263" cy="50" r="1.6" fill="#d9a86a" /><circle cx="259" cy="53" r="2.2" fill="#f0d8b8" /><circle cx="257.5" cy="51.5" r="0.5" fill="#3a2a2a" /><circle cx="260.5" cy="51.5" r="0.5" fill="#3a2a2a" /></g>
+        </g>
+
+        {/* 地毯 + 足球 */}
+        <ellipse cx="120" cy="150" rx="48" ry="13" fill="#bcdcea" opacity="0.85" />
+        <ellipse cx="120" cy="150" rx="40" ry="10" fill="#d4ecf5" opacity="0.7" />
+        <ellipse cx="222" cy="156" rx="34" ry="11" fill="#f6c8da" opacity="0.85" />
+        <g><circle cx="256" cy="150" r="5" fill="#fff" stroke="#bbb" strokeWidth="0.5" /><polygon points="256,147 258,149 257,152 255,152 254,149" fill="#7a8a9a" /></g>
+
+        {/* 圆桌 + 可点击盆栽 */}
         {(() => {
-          const bh = 13;
-          const f1 = P(0.56, 0.06), f2 = P(0.98, 0.06), f3 = P(0.98, 0.46), f4 = P(0.56, 0.46);
+          const cx = 222, topY = 132;
           return (
-            <g>
-              {/* 前侧面 */}
-              {poly([f4, f3, up(f3, bh), up(f4, bh)], isNight ? "#3a2f4e" : "#9a6a52")}
-              {poly([f1, f4, up(f4, bh), up(f1, bh)], isNight ? "#322840" : "#855a44")}
-              {/* 床面 */}
-              {poly([up(f1, bh), up(f2, bh), up(f3, bh), up(f4, bh)], isNight ? "#4a3d60" : "#e8d4e0")}
-              {/* 枕头（后） */}
-              {poly([up(P(0.6, 0.1), bh + 1), up(P(0.78, 0.1), bh + 1), up(P(0.78, 0.2), bh + 1), up(P(0.6, 0.2), bh + 1)], "#fff4fb")}
-              {/* 被子 */}
-              {poly([up(P(0.6, 0.24), bh + 1), up(P(0.96, 0.24), bh + 1), up(P(0.96, 0.44), bh + 1), up(P(0.6, 0.44), bh + 1)], isNight ? "#7a6f9a" : "#c98ab0")}
+            <g style={{ cursor: "pointer" }} onClick={onPlantClick}>
+              <rect x={cx - 1.5} y={topY} width="3" height="16" fill="#ee93b4" />
+              <ellipse cx={cx} cy={topY + 16} rx="9" ry="3" fill="#dd86a8" />
+              <ellipse cx={cx} cy={topY} rx="15" ry="5" fill="#f7c8da" />
+              <ellipse cx={cx} cy={topY - 0.5} rx="13" ry="4" fill="#fbdbe8" />
+              <g transform={`translate(${(cx - 8 * 0.85).toFixed(1)},${(topY - 18.5 * 0.85).toFixed(1)}) scale(0.85)`}>{PlantShapes(plantStage, "room")}</g>
+              <circle cx={cx} cy={topY - 7} r="12" fill="none" stroke="#bfe6c4" strokeWidth="0.7" style={{ animation: "hintP 2.6s ease-in-out infinite", transformBox: "fill-box", transformOrigin: "center" }} />
+              <text x={cx + 11} y={topY - 12} fontSize="6" style={{ animation: "hintP 2.6s ease-in-out infinite" }}>🔍</text>
             </g>
           );
         })()}
 
-        {/* ── 盆栽向日葵（前左角） ── */}
-        {(() => { const b = P(0.12, 0.86); return (
+        {/* 吊灯 */}
+        <g>
+          <line x1="120" y1="0" x2="120" y2="8" stroke="#e3b98f" strokeWidth="1" />
+          <path d="M112,8 L128,8 L125,15 L115,15 Z" fill={isNight ? "#ffe7a8" : "#fbe6c0"} stroke="#e3b98f" strokeWidth="0.6" />
+          {isNight && <circle cx="120" cy="16" r="30" fill="url(#lampLight)" style={{ animation: "lampG 4s ease-in-out infinite" }} />}
+        </g>
+
+        {/* ════════ 活动演出 ════════ */}
+        {key === "eat" && (() => { const fx = 120; return (
           <g>
-            {poly([[b[0] - 4, b[1]], [b[0] + 4, b[1]], [b[0] + 3, b[1] + 8], [b[0] - 3, b[1] + 8]], "#b5734a")}
-            <rect x={b[0] - 0.7} y={b[1] - 11} width="1.4" height="12" fill="#4a7a32" />
-            <circle cx={b[0]} cy={b[1] - 12} r="3.6" fill="#ffce4a" />
-            <circle cx={b[0]} cy={b[1] - 12} r="1.6" fill="#7a4a18" />
+            <ellipse cx={fx} cy="162" rx="9" ry="2.6" fill="#f0d6e0" />
+            <ellipse cx={fx} cy="159" rx="5" ry="2" fill="#fff" /><ellipse cx={fx} cy="158.4" rx="4" ry="1.4" fill="#ffeede" />
+            <text x={fx + 12} y="150" fontSize="7" style={{ animation: "yumB 1.4s ease-in-out infinite", transformBox: "fill-box", transformOrigin: "center" }}>🍚</text>
           </g>
         ); })()}
 
-        {/* ── 桌上小盆栽（可点击照护） ── */}
-        {(() => {
-          const tp = P(0.86, 0.8);
-          const topY = tp[1] - 9;
-          return (
-            <g style={{ cursor: "pointer" }} onClick={onPlantClick}>
-              {/* 小圆桌 */}
-              <rect x={tp[0] - 1} y={topY} width="2" height="10" fill="#9a6a52" />
-              <ellipse cx={tp[0]} cy={tp[1]} rx="7" ry="2.4" fill="#7a5240" />
-              <ellipse cx={tp[0]} cy={topY} rx="7" ry="3" fill="#b5805f" />
-              <ellipse cx={tp[0]} cy={topY} rx="5.4" ry="2.2" fill="#caa07a" />
-              {/* 盆栽 */}
-              <g transform={`translate(${(tp[0] - 8 * 0.85).toFixed(1)},${(topY - 18.5 * 0.85).toFixed(1)}) scale(0.85)`}>
-                {PlantShapes(plantStage, "room")}
-              </g>
-              {/* 可点击提示光环 */}
-              <circle cx={tp[0]} cy={topY - 7} r="11" fill="none" stroke="#bfe6c4" strokeWidth="0.7" opacity="0.5" style={{ animation: "plantHint 2.6s ease-in-out infinite", transformBox: "fill-box", transformOrigin: "center" }} />
-              <text x={tp[0] + 9} y={topY - 12} fontSize="6" style={{ animation: "plantHint 2.6s ease-in-out infinite" }}>🔍</text>
-            </g>
-          );
-        })()}
+        {key === "bath" && (() => { const bx = 120, by = 150; return (
+          <g>
+            <ellipse cx={bx} cy={by} rx="18" ry="8" fill="#cfe9f2" />
+            <ellipse cx={bx} cy={by - 1} rx="15" ry="6" fill="#9fd6ec" />
+            {[[-9, -3], [0, -4], [8, -2], [-3, -5], [5, -4.5]].map((p, i) => <circle key={`bb-${i}`} cx={bx + p[0]} cy={by + p[1]} r={1.6 + (i % 2)} fill="#fff" opacity="0.85" style={{ animation: `bubP ${1.5 + i * 0.3}s ease-in-out infinite` }} />)}
+            <SleepHead cx={bx} cy={by - 5} scale={0.62} />
+            {[-7, 2, 9].map((dx, i) => <circle key={`sm-${i}`} cx={bx + dx} cy={by - 8} r="2.4" fill="#fff" opacity="0.4" style={{ animation: `steamR ${2 + i * 0.5}s ease-out infinite` }} />)}
+          </g>
+        ); })()}
 
-        {/* ════════ 按活动演出 ════════ */}
+        {key === "sleep" && (() => { const hx = 82, hy = 82; return (
+          <g>
+            <SleepHead cx={hx} cy={hy} scale={0.78} />
+            {[0, 1, 2].map((i) => <text key={`z-${i}`} x={hx + 9 + i * 3.5} y={hy - 8 - i * 4} fontSize={4 + i} fill="#c0a6e0" style={{ animation: `zzzF 2.4s ease-in-out ${i * 0.6}s infinite` }}>z</text>)}
+          </g>
+        ); })()}
 
-        {/* 吃饭：小桌 + 饭碗 + Kara */}
-        {key === "eat" && (() => {
-          const t = P(0.2, 0.66);
-          return (
-            <g>
-              {/* 桌腿+桌面 */}
-              <rect x={t[0] - 0.8} y={t[1] - 6} width="1.6" height="7" fill="#9a6a52" />
-              <ellipse cx={t[0]} cy={t[1] - 6} rx="6" ry="2.6" fill="#b5805f" />
-              {/* 饭碗 */}
-              <ellipse cx={t[0]} cy={t[1] - 7} rx="3" ry="1.4" fill="#fff" />
-              <ellipse cx={t[0]} cy={t[1] - 7.5} rx="2.4" ry="1" fill="#ffeede" />
-              {/* yum */}
-              <text x={t[0] + 8} y={t[1] - 10} fontSize="6" style={{ animation: "yumBounce 1.4s ease-in-out infinite", transformBox: "fill-box", transformOrigin: "center" }}>🍚</text>
-            </g>
-          );
-        })()}
+        {key === "out" && (() => { const mx = 120; return (
+          <g style={{ animation: "signS 3s ease-in-out infinite", transformBox: "fill-box", transformOrigin: "center" }}>
+            <line x1={mx} y1="100" x2={mx} y2="120" stroke="#caa06a" strokeWidth="1.2" />
+            <rect x={mx - 24} y="120" width="48" height="18" rx="3" fill="#fff4ea" stroke="#f0b9cd" strokeWidth="1.4" />
+            <text x={mx} y="132" fontSize="8" textAnchor="middle" fill="#e07090" fontFamily="'Noto Sans SC',sans-serif">🌳 外出中…</text>
+          </g>
+        ); })()}
 
-        {/* 洗澡：浴缸 + 泡泡 + Kara 露头 */}
-        {key === "bath" && (() => {
-          const b = P(0.66, 0.62);
-          return (
-            <g>
-              {/* 缸体 */}
-              <ellipse cx={b[0]} cy={b[1]} rx="12" ry="5.5" fill="#cfe2ec" />
-              <ellipse cx={b[0]} cy={b[1] - 0.5} rx="10" ry="4.2" fill="#8fc6e0" />
-              {/* 泡泡 */}
-              {[[-6, -2], [0, -3], [5, -1.5], [-2, -4]].map((p, i) => (
-                <circle key={`bub-${i}`} cx={b[0] + p[0]} cy={b[1] + p[1]} r={1.4 + (i % 2)} fill="#fff" opacity="0.85" style={{ animation: `bubblePop ${1.5 + i * 0.3}s ease-in-out infinite` }} />
-              ))}
-              {/* 露出的小脑袋 */}
-              <g transform={`translate(${(b[0] - 8 * 0.7).toFixed(1)},${(b[1] - 9 * 0.7).toFixed(1)}) scale(0.7)`} shapeRendering="crispEdges">
-                {pixelRects(KARA_SLEEP_HEAD.slice(0, 8), karaPalette(stageIndex), "bathhead")}
-              </g>
-              {/* 蒸汽 */}
-              {[-5, 2, 7].map((dx, i) => (
-                <circle key={`st-${i}`} cx={b[0] + dx} cy={b[1] - 6} r="2" fill="#fff" opacity="0.4" style={{ animation: `steamRise ${2 + i * 0.5}s ease-out infinite` }} />
-              ))}
-            </g>
-          );
-        })()}
+        {standing && <KaraSprite stageIdx={stageIndex} fx={120} fy={155} scale={0.92} />}
 
-        {/* 睡觉：Kara 躺床 + Zzz */}
-        {key === "sleep" && (() => {
-          const head = up(P(0.69, 0.16), 15);
-          return (
-            <g>
-              <g transform={`translate(${head[0] - 8 * 0.62},${head[1] - 12 * 0.62}) scale(0.62)`} shapeRendering="crispEdges">
-                {pixelRects(KARA_SLEEP_HEAD, karaPalette(stageIndex), "sleephead")}
-              </g>
-              {[0, 1, 2].map((i) => (
-                <text key={`zzz-${i}`} x={head[0] + 6 + i * 3} y={head[1] - 4 - i * 3} fontSize={4 + i} fill="#bcd0ff" style={{ animation: `zzzFloat ${2.4}s ease-in-out ${i * 0.6}s infinite` }}>z</text>
-              ))}
-            </g>
-          );
-        })()}
-
-        {/* 外出：房间空 + 挂牌 外出中… */}
-        {key === "out" && (() => {
-          const m = P(0.5, 0.52);
-          return (
-            <g style={{ animation: "signSway 3s ease-in-out infinite", transformBox: "fill-box", transformOrigin: "center" }}>
-              <line x1={m[0]} y1={m[1] - 30} x2={m[0]} y2={m[1] - 16} stroke="#9a6a52" strokeWidth="1" />
-              <rect x={m[0] - 17} y={m[1] - 16} width="34" height="14" rx="2" fill={isNight ? "#2a2440" : "#fff4ea"} stroke="#caa46a" strokeWidth="1" />
-              <text x={m[0]} y={m[1] - 6} fontSize="6.5" textAnchor="middle" fill="#d76a86" fontFamily="'Noto Sans SC',sans-serif">🌳 外出中…</text>
-            </g>
-          );
-        })()}
-
-        {/* 站立/默认：Kara 在地毯上 */}
-        {(key === "idle") && (
-          <KaraSprite stageIdx={stageIndex} fx={idlePos[0]} fy={idlePos[1] + standY} />
-        )}
-        {key === "eat" && (
-          <KaraSprite stageIdx={stageIndex} fx={eatPos[0]} fy={eatPos[1] + standY} />
-        )}
-
-        {/* 夜晚整体压暗 */}
-        {isNight && <rect x="0" y="0" width="200" height="158" fill="#0a1024" opacity="0.28" pointerEvents="none" />}
+        {isNight && <rect x="0" y="0" width="280" height="176" fill="#3a2f55" opacity="0.22" pointerEvents="none" />}
       </svg>
 
-      {/* ── 女儿头顶说话气泡 ── */}
+      {/* 头顶说话气泡 */}
       {showSpeech && speech && (
-        <div style={{
-          position: "absolute", left: "50%", top: "5%", transform: "translateX(-50%)",
-          maxWidth: "76%", padding: "6px 11px", borderRadius: "12px",
-          background: "rgba(255,250,253,0.95)", border: "2px solid rgba(232,127,166,0.6)",
-          boxShadow: "0 3px 10px rgba(0,0,0,0.25)", animation: "speechPop 0.4s ease-out",
-          pointerEvents: "none", zIndex: 3,
-        }}>
-          <p style={{
-            fontSize: "10px", color: "#7a3a52", fontFamily: "'Noto Sans SC', sans-serif",
-            lineHeight: 1.5, textAlign: "center", margin: 0, whiteSpace: "normal",
-          }}>{speech}</p>
-          {/* 气泡小尾巴 */}
-          <div style={{
-            position: "absolute", bottom: "-7px", left: "50%", transform: "translateX(-50%)",
-            width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
-            borderTop: "7px solid rgba(232,127,166,0.6)",
-          }} />
-          <div style={{
-            position: "absolute", bottom: "-4px", left: "50%", transform: "translateX(-50%)",
-            width: 0, height: 0, borderLeft: "4px solid transparent", borderRight: "4px solid transparent",
-            borderTop: "5px solid rgba(255,250,253,0.95)",
-          }} />
+        <div style={{ position: "absolute", left: "50%", top: "4%", transform: "translateX(-50%)", maxWidth: "72%", padding: "6px 11px", borderRadius: "12px", background: "rgba(255,250,253,0.96)", border: "2px solid rgba(240,150,180,0.7)", boxShadow: "0 3px 10px rgba(150,100,130,0.25)", animation: "speechPop 0.4s ease-out", pointerEvents: "none", zIndex: 3 }}>
+          <p style={{ fontSize: "10px", color: "#9a4a6a", fontFamily: "'Noto Sans SC', sans-serif", lineHeight: 1.5, textAlign: "center", margin: 0 }}>{speech}</p>
+          <div style={{ position: "absolute", bottom: "-7px", left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "7px solid rgba(240,150,180,0.7)" }} />
+          <div style={{ position: "absolute", bottom: "-4px", left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "4px solid transparent", borderRight: "4px solid transparent", borderTop: "5px solid rgba(255,250,253,0.96)" }} />
         </div>
       )}
     </div>
   );
 }
 
-/* ── 像素盆栽：星苗（手绘 SVG） ── */
+/* ── 像素盆栽：星苗 ── */
 export function PlantShapes(stage, k = "pl") {
   const green = stage === "wilt" ? "#8a9a5a" : "#4f9a3a";
   const greenD = stage === "wilt" ? "#6a7a45" : "#377a26";
   const els = [];
-  // 花盆
-  els.push(<polygon key={`${k}-pot`} points="4,13 12,13 11,19 5,19" fill="#c2764a" />);
-  els.push(<polygon key={`${k}-rim`} points="3.6,12.6 12.4,12.6 11.8,14.2 4.2,14.2" fill="#a85f38" />);
-  els.push(<rect key={`${k}-soil`} x="4.4" y="12.8" width="7.2" height="1.2" fill="#5a3a26" />);
+  els.push(<polygon key={`${k}-pot`} points="4,13 12,13 11,19 5,19" fill="#e88aa8" />);
+  els.push(<polygon key={`${k}-rim`} points="3.6,12.6 12.4,12.6 11.8,14.2 4.2,14.2" fill="#d56f92" />);
+  els.push(<rect key={`${k}-soil`} x="4.4" y="12.8" width="7.2" height="1.2" fill="#6a4a36" />);
   if (stage === "wilt") {
     els.push(<path key={`${k}-stem`} d="M8,12.5 q-3.5,-2.5 -4.5,1.5" stroke={greenD} strokeWidth="1.4" fill="none" />);
     els.push(<ellipse key={`${k}-l1`} cx="4.2" cy="11.5" rx="2" ry="1" fill={green} />);
@@ -446,15 +386,13 @@ export function PlantShapes(stage, k = "pl") {
   }
   return els;
 }
-
 export function PixelPlant({ stage = "sprout", size = 80 }) {
   return (
-    <svg viewBox="0 0 16 20" width={size} height={size * 20 / 16} style={{ imageRendering: "pixelated", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}>
+    <svg viewBox="0 0 16 20" width={size} height={size * 20 / 16} style={{ imageRendering: "pixelated", filter: "drop-shadow(0 2px 4px rgba(150,100,130,0.3))" }}>
       {PlantShapes(stage, "pp")}
     </svg>
   );
 }
-
 export function plantStageFromHealth(water, sun) {
   const h = (water + sun) / 2;
   if (h < 28) return "wilt";
@@ -463,20 +401,18 @@ export function plantStageFromHealth(water, sun) {
   return "bloom";
 }
 
-/* ── 固定像素天空背景（取代海边小屋） ── */
+/* ── 固定像素天空背景 ── */
 export function PixelSky({ hour = 12 }) {
   const tod = getTod(hour);
-  const c = ROOM_PAL[tod];
+  const s = SKY[tod];
   const isNight = tod === "night";
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", background: `linear-gradient(180deg, ${c.sky1} 0%, ${c.sky2} 55%, ${c.sky3} 100%)`, transition: "background 120s ease" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", background: `linear-gradient(180deg, ${s.a} 0%, ${s.b} 55%, ${s.c} 100%)`, transition: "background 120s ease" }}>
       {isNight && Array.from({ length: 40 }, (_, i) => (
         <div key={`ps-${i}`} style={{ position: "absolute", left: `${(i * 37) % 100}%`, top: `${(i * 53) % 60}%`, width: "2px", height: "2px", background: "#fff", opacity: 0.6, imageRendering: "pixelated" }} />
       ))}
-      {/* 远处海平线 */}
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "26%", background: `linear-gradient(180deg, ${c.sea}, ${c.sea}cc)` }} />
-      {/* 暗角 */}
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.35) 100%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "24%", background: `linear-gradient(180deg, ${s.sea}, ${s.sea}cc)` }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at center, transparent 58%, rgba(120,90,110,0.22) 100%)", pointerEvents: "none" }} />
     </div>
   );
 }

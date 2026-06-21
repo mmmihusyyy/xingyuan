@@ -888,6 +888,14 @@ export default function App() {
         if (stat === "energy" && isSleeping) continue;
         next[stat] = Math.max(0, Math.min(100, prev[stat] + rate * hours));
       }
+      // ── Kara 自己照顾自己：当前在做的活动会回相应的值 ──
+      const cap = (v) => Math.max(0, Math.min(100, v));
+      const act = getKaraActivity(getTokyoHour(), prev, isSleeping).key;
+      if (act === "eat") next.hunger = cap(next.hunger + 42 * hours);
+      else if (act === "bath") next.clean = cap(next.clean + 42 * hours);
+      else if (act === "sleep") next.energy = cap(next.energy + 24 * hours);
+      else if (act === "out") { next.happiness = cap(next.happiness + 18 * hours); next.energy = cap(next.energy - 2 * hours); }
+      else { next.happiness = cap(next.happiness + 15 * hours); next.love = cap(next.love + 6 * hours); }
       return next;
     });
     setLastDecayTime(now);
@@ -1168,36 +1176,15 @@ export default function App() {
           <StatBar label="爱意" emoji="💗" value={stats.love} color="rgba(220,140,160,0.8)" decayInfo="-1/h" />
           {stats.energy <= 15 && !isSleeping && (
             <div style={{ marginTop: "8px", padding: "8px 12px", borderRadius: "10px", background: "rgba(220,100,100,0.08)", border: "1px solid rgba(220,100,100,0.15)", textAlign: "center" }}>
-              <p style={{ fontSize: "10px", color: "rgba(220,100,100,0.8)", fontFamily: "'Noto Sans SC', sans-serif" }}>⚠️ Kara太累了……只能睡觉</p>
+              <p style={{ fontSize: "10px", color: "rgba(220,100,100,0.8)", fontFamily: "'Noto Sans SC', sans-serif" }}>😴 Kara太累了……正在自己睡觉觉补充精力</p>
             </div>
           )}
         </div>
 
-        {/* Parent tabs */}
-        <div style={{ width: "100%", display: "flex", gap: "8px", marginBottom: "12px" }}>
-          <button onClick={() => setActiveTab("mama")} style={{
-            flex: 1, padding: "10px", borderRadius: "12px", textAlign: "center",
-            background: activeTab === "mama" ? "rgba(200,170,120,0.25)" : "rgba(10,15,25,0.65)",
-            backdropFilter: "blur(10px)",
-            border: `1px solid ${activeTab === "mama" ? "rgba(200,170,120,0.4)" : C.border}`,
-          }}>
-            <div style={{ fontSize: "14px", marginBottom: "2px" }}>🐾</div>
-            <div style={{ fontSize: "10px", fontFamily: "'Noto Sans SC', sans-serif", color: activeTab === "mama" ? "rgba(220,190,140,1)" : C.textDim }}>小狗妈妈</div>
-          </button>
-          <button onClick={() => setActiveTab("papa")} style={{
-            flex: 1, padding: "10px", borderRadius: "12px", textAlign: "center",
-            background: activeTab === "papa" ? "rgba(100,160,220,0.25)" : "rgba(10,15,25,0.65)",
-            backdropFilter: "blur(10px)",
-            border: `1px solid ${activeTab === "papa" ? "rgba(100,160,220,0.4)" : C.border}`,
-          }}>
-            <div style={{ fontSize: "14px", marginBottom: "2px" }}>📔</div>
-            <div style={{ fontSize: "10px", fontFamily: "'Noto Sans SC', sans-serif", color: activeTab === "papa" ? C.blue : C.textDim }}>教授爸爸</div>
-          </button>
-        </div>
-
-        {/* Actions */}
-        <div style={{ width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "20px" }}>
-          {actions.map(a => { const s = getActionState(a); return <ActionBtn key={a.id} action={a} onClick={doAction} disabled={s.disabled} timeLeft={s.timeLeft} reason={s.reason} />; })}
+        {/* Kara 独立生活提示 */}
+        <div style={{ width: "100%", padding: "12px 16px", borderRadius: "14px", background: "rgba(220,140,160,0.08)", backdropFilter: "blur(8px)", border: "1px solid rgba(220,140,160,0.15)", marginBottom: "16px", textAlign: "center" }}>
+          <p style={{ fontSize: "10.5px", color: C.pink, fontFamily: "'Noto Sans SC', sans-serif", lineHeight: 1.7 }}>🏠 Kara 在自己的小窝里独立生活</p>
+          <p style={{ fontSize: "9px", color: C.textDim, fontFamily: "'Noto Sans SC', sans-serif", marginTop: "3px" }}>到点会自己吃饭、洗澡、睡觉、出去玩，照顾好自己～</p>
         </div>
 
         {/* Diary */}
