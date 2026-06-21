@@ -618,13 +618,15 @@ function getAutonomousAction(stats, isSleeping) {
   return null;
 }
 
-function getAutonomousPose(text, isSleeping) {
+function getAutonomousPose(text, isSleeping, hour) {
   if (isSleeping || /睡|困|梦|被窝/.test(text || "")) return "bed";
   if (/饭|吃|餐|奶|饿/.test(text || "")) return "table";
   if (/洗|澡|清理|香香/.test(text || "")) return "dresser";
+  if (/电脑|游戏|打字|上网/.test(text || "")) return "computer";
   if (/玩|玩具/.test(text || "")) return "toys";
   if (/书|学习|认字/.test(text || "")) return "desk";
   if (/窗|海|散步/.test(text || "")) return "window";
+  if ((hour >= 8 && hour < 10) || (hour >= 13 && hour < 14)) return "computer";
   return "idle";
 }
 
@@ -916,7 +918,8 @@ export default function App() {
   const nextStage = STAGES.find(s => s.threshold > interactions);
   const progress = nextStage ? ((interactions - currentStage.threshold) / (nextStage.threshold - currentStage.threshold)) * 100 : 100;
   const recentActivity = activity?.at && now - new Date(activity.at).getTime() < 90 * 60 * 1000;
-  const roomPose = getAutonomousPose(recentActivity ? activity.text : "", isSleeping);
+  const previewPose = IS_LOCAL_PREVIEW ? new URLSearchParams(window.location.search).get("pose") : null;
+  const roomPose = previewPose || getAutonomousPose(recentActivity ? activity.text : "", isSleeping, getTokyoHour());
 
   return (
     <>

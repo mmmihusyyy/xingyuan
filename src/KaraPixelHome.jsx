@@ -2,8 +2,9 @@ import "./KaraPixelHome.css";
 
 const POSES = {
   idle: { x: 47, y: 75 },
-  bed: { x: 26, y: 57 },
+  bed: { x: 28, y: 55 },
   desk: { x: 59, y: 52 },
+  computer: { x: 51.5, y: 53 },
   sofa: { x: 77, y: 60 },
   toys: { x: 79, y: 84 },
   dresser: { x: 42, y: 47 },
@@ -22,17 +23,20 @@ export default function KaraPixelHome({
   bubbleText,
   pose = "idle",
 }) {
-  const currentPose = POSES[isSleeping ? "bed" : pose] || POSES.idle;
+  const isBedPose = isSleeping || pose === "bed";
+  const isComputerPose = !isBedPose && pose === "computer";
+  const currentPose = POSES[isBedPose ? "bed" : pose] || POSES.idle;
+  const roomHint = isBedPose ? "睡觉中" : isComputerPose ? "玩电脑中" : "自主生活中";
 
   return (
-    <section className={`kara-pixel-card ${isSleeping ? "is-sleeping" : ""}`}>
+    <section className={`kara-pixel-card ${isBedPose ? "is-sleeping" : ""}`}>
       <header className="kara-pixel-meta">
         <div>
           <span className="kara-stage-icon">{stage.emoji}</span>
           <span className="kara-stage-name">{stage.name} · {stage.en}</span>
           <span className="kara-stage-desc">{stage.desc}</span>
         </div>
-        <span className="kara-room-hint">自主生活中</span>
+        <span className="kara-room-hint">{roomHint}</span>
       </header>
 
       <div className="kara-room" aria-label="Kara 的 2.5D 像素房间">
@@ -40,13 +44,21 @@ export default function KaraPixelHome({
         <div className="kara-room-shade" />
 
         <div
-          className={`kara-sprite-wrap ${isSleeping ? "is-napping" : ""}`}
+          className={`kara-sprite-wrap ${isBedPose ? "is-napping" : ""} ${isComputerPose ? "is-computing" : ""}`}
           style={{ "--kara-x": `${currentPose.x}%`, "--kara-y": `${currentPose.y}%` }}
         >
           {showBubble && bubbleText && <div className="kara-speech" aria-live="polite">{bubbleText}</div>}
           <img className="kara-sprite" src="/kara-home/kara-v1.png" alt="Kara" />
-          {isSleeping && <span className="kara-zzz">Z z z</span>}
+          {isBedPose && <span className="kara-sleep-blanket" aria-hidden="true" />}
+          {isBedPose && <span className="kara-zzz">Z z z</span>}
+          {isComputerPose && <span className="kara-typing" aria-hidden="true">⌨ ···</span>}
         </div>
+
+        {isComputerPose && (
+          <div className="kara-computer-fx" aria-hidden="true">
+            <i /><i /><i />
+          </div>
+        )}
 
         <div className="kara-room-badge">🏠 KARA'S ROOM · 2.5D</div>
       </div>
