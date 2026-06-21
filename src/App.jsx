@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import IsometricRoom, { PixelSky, PixelPlant, plantStageFromHealth } from "./PixelRoom";
 
 /* ═══════════════════════════════════════════
    星海孕育 · KARA  v3.2
@@ -629,12 +630,39 @@ function generateDailyMood(stats) {
   return KARA_DAILY_MOOD[KARA_DAILY_MOOD.length - 1].msg;
 }
 
+/* ── Kara 自主作息：按东京时间 + 状态值决定她在干嘛 ── */
+const IDLE_DOINGS = [
+  { label: "在窗边看海", emoji: "🌊" },
+  { label: "在地毯上玩玩具", emoji: "🧸" },
+  { label: "看绘本中", emoji: "📖" },
+  { label: "发呆数星星", emoji: "✨" },
+  { label: "抱着小星星转圈圈", emoji: "💫" },
+];
+function getKaraActivity(h, stats, isSleeping) {
+  if (isSleeping) return { key: "sleep", label: "睡觉中", emoji: "💤" };
+  if (stats.energy <= 15) return { key: "sleep", label: "累瘫了…在打盹", emoji: "💤" };
+  if (stats.hunger <= 22) return { key: "eat", label: "肚肚饿，吃饭中", emoji: "🍚" };
+  if (stats.clean <= 22) return { key: "bath", label: "脏脏的，洗香香", emoji: "🛁" };
+  if (h >= 7 && h < 8) return { key: "eat", label: "吃早饭中", emoji: "🍚" };
+  if (h >= 12 && h < 13) return { key: "eat", label: "吃午饭中", emoji: "🍚" };
+  if (h >= 18 && h < 19) return { key: "eat", label: "吃晚饭中", emoji: "🍚" };
+  if (h >= 20 && h < 21) return { key: "bath", label: "洗香香中", emoji: "🛁" };
+  if (h >= 15 && h < 17) return { key: "out", label: "外出中…", emoji: "🌳" };
+  const pick = IDLE_DOINGS[Math.floor(h) % IDLE_DOINGS.length];
+  return { key: "idle", label: pick.label, emoji: pick.emoji };
+}
+
 function getReactionMsg(actionId) {
   const r = KARA_REACTIONS[actionId];
   return r ? r[Math.floor(Math.random() * r.length)] : null;
 }
 
 const DEFAULT_STATS = { hunger: 70, happiness: 100, energy: 34, clean: 98, love: 100 };
+const DEFAULT_PLANT = { name: "星苗", water: 78, sun: 72, lastTick: Date.now(), waterCd: 0, sunCd: 0, born: Date.now(), cares: 0 };
+const PLANT_WHISPERS = [
+  "嫩芽好像又长高了一点点～", "Kara说：要乖乖喝水水哦🌱", "晒到太阳的时候它会暖暖的发光",
+  "再多照顾它一些，它就会开出星星花！", "它和Kara一样，是被爱浇灌长大的呀",
+];
 const DEFAULT_INTERACTIONS = 16;
 const DEFAULT_LOG = [
   { time: "2/27 21:02", who: "mama", text: "妈妈在喂Kara喝奶～好乖好乖", emoji: "🍼" },
@@ -756,6 +784,8 @@ export default function App() {
   const [showThought, setShowThought] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [cloudStatus, setCloudStatus] = useState("⏳");
+  const [plant, setPlant] = useState(() => loadData("plant", DEFAULT_PLANT));
+  const [showPlant, setShowPlant] = useState(false);
   const msgTimer = useRef(null);
   const thoughtTimer = useRef(null);
   const cloudSaveTimer = useRef(null);
@@ -779,6 +809,7 @@ export default function App() {
           setCooldownEnds(cloud.cooldownEnds || {});
           setDailyCounts(cloud.dailyCounts || {});
           setLastDecayTime(cloud.lastDecayTime || Date.now());
+          if (cloud.plant) { setPlant(cloud.plant); saveData("plant", cloud.plant); }
           saveData("stats", cloud.stats || DEFAULT_STATS);
           saveData("interactions", cloud.interactions || DEFAULT_INTERACTIONS);
           saveData("log", cloud.log || DEFAULT_LOG);
@@ -803,14 +834,14 @@ export default function App() {
     cloudSaveTimer.current = setTimeout(async () => {
       setCloudStatus("⬆️");
       await cloudSave({
-        stats, interactions, log, diary, cooldownEnds, dailyCounts, lastDecayTime,
+        stats, interactions, log, diary, cooldownEnds, dailyCounts, lastDecayTime, plant,
         savedAt: Date.now(),
       });
       setCloudStatus("☁️");
     }, 2000);
-  }, [stats, interactions, log, diary, cooldownEnds, dailyCounts, lastDecayTime]);
+  }, [stats, interactions, log, diary, cooldownEnds, dailyCounts, lastDecayTime, plant]);
 
-  useEffect(() => { triggerCloudSave(); }, [stats, interactions, log, diary, cooldownEnds, dailyCounts]);
+  useEffect(() => { triggerCloudSave(); }, [stats, interactions, log, diary, cooldownEnds, dailyCounts, plant]);
 
   /* ── Cloud Sync: Pull when tab becomes visible (cross-device) ── */
   useEffect(() => {
@@ -879,6 +910,36 @@ export default function App() {
   const nextStage = STAGES.find(s => s.threshold > interactions);
   const progress = nextStage ? ((interactions - currentStage.threshold) / (nextStage.threshold - currentStage.threshold)) * 100 : 100;
   const clamp = (v) => Math.max(0, Math.min(100, v));
+
+  /* ── Kara 自主作息（每秒随 now 重算，整点内稳定） ── */
+  const karaAct = getKaraActivity(getTokyoHour(), stats, isSleeping);
+
+  /* ── 桌上小盆栽 · 浇水/阳光照护 ── */
+  const plantStage = plantStageFromHealth(plant.water, plant.sun);
+  useEffect(() => { saveData("plant", plant); }, [plant]);
+  // 缓慢消耗：水 -4/h，阳光 -2.5/h（白天窗光帮回一点）
+  useEffect(() => {
+    const elapsed = now - (plant.lastTick || now);
+    if (elapsed < 60000) return;
+    const hours = elapsed / 3600000;
+    const h = getTokyoHour();
+    const sunGain = (h >= 8 && h < 16) ? 1.2 * hours : 0;
+    setPlant(prev => ({
+      ...prev,
+      water: Math.max(0, Math.min(100, prev.water - 4 * hours)),
+      sun: Math.max(0, Math.min(100, prev.sun - 2.5 * hours + sunGain)),
+      lastTick: now,
+    }));
+  }, [now]);
+  const waterPlant = () => {
+    if (now < (plant.waterCd || 0)) return;
+    setPlant(prev => ({ ...prev, water: Math.min(100, prev.water + 30), waterCd: Date.now() + 20 * 60000, cares: (prev.cares || 0) + 1, lastTick: Date.now() }));
+  };
+  const sunPlant = () => {
+    if (now < (plant.sunCd || 0)) return;
+    setPlant(prev => ({ ...prev, sun: Math.min(100, prev.sun + 30), sunCd: Date.now() + 20 * 60000, cares: (prev.cares || 0) + 1, lastTick: Date.now() }));
+  };
+
   const getMoodEmoji = (s) => {
     const avg = (s.hunger + s.happiness + s.energy + s.clean + s.love) / 5;
     if (avg >= 85) return "🥰"; if (avg >= 70) return "😊"; if (s.energy <= 20) return "😴";
@@ -963,6 +1024,7 @@ export default function App() {
         @keyframes gentlePulse { 0%,100% { opacity: 0.45; } 50% { opacity: 0.7; } }
         @keyframes sleepBreath { 0%,100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.03); opacity: 1; } }
         @keyframes thoughtBubble { 0% { opacity: 0; transform: translateY(4px) scale(0.95); } 15% { opacity: 1; transform: translateY(0) scale(1); } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(-4px) scale(0.95); } }
+        @keyframes lensPop { 0% { opacity: 0; transform: scale(0.6); } 100% { opacity: 1; transform: scale(1); } }
         @keyframes cloudDrift { 0% { transform: translateX(-20%); } 100% { transform: translateX(120vw); } }
         @keyframes waveMove { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-15%); } }
         @keyframes waveMove2 { 0%,100% { transform: translateX(-5%); } 50% { transform: translateX(-20%); } }
@@ -980,7 +1042,7 @@ export default function App() {
         button { background: none; border: none; cursor: pointer; color: inherit; font: inherit; }
       `}</style>
 
-      <SeasideCottage />
+      <PixelSky hour={getTokyoHour()} />
 
       <div style={{
         position: "relative", zIndex: 1, minHeight: "100vh",
@@ -1004,12 +1066,25 @@ export default function App() {
           marginBottom: "16px", textAlign: "center",
           animation: sparkle ? "sparkleRing 0.6s ease-out" : isSleeping ? "sleepBreath 4s ease-in-out infinite" : "fadeIn 0.5s ease-out",
         }}>
-          <div style={{
-            fontSize: "52px", marginBottom: "8px",
-            animation: isSleeping ? "sleepBreath 3s ease-in-out infinite" : "float 4s ease-in-out infinite",
-            filter: sparkle ? "brightness(1.4)" : isSleeping ? "brightness(0.7)" : "brightness(1)",
-          }}>
-            {isSleeping ? "😴" : currentStage.emoji}
+          <div style={{ marginBottom: "8px", filter: sparkle ? "brightness(1.2)" : "none", transition: "filter 0.4s" }}>
+            <IsometricRoom
+              stageIndex={STAGES.indexOf(currentStage)}
+              activity={karaAct.key}
+              hour={getTokyoHour()}
+              plantStage={plantStage}
+              onPlantClick={() => setShowPlant(true)}
+              speech={karaThought}
+              showSpeech={karaAct.key !== "out" && karaAct.key !== "sleep"}
+            />
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "2px",
+              padding: "3px 12px", borderRadius: "10px",
+              background: karaAct.key === "out" ? "rgba(120,200,120,0.12)" : "rgba(220,140,160,0.1)",
+              border: `1px solid ${karaAct.key === "out" ? "rgba(120,200,120,0.25)" : "rgba(220,140,160,0.2)"}`,
+            }}>
+              <span style={{ fontSize: "13px" }}>{karaAct.emoji}</span>
+              <span style={{ fontSize: "10px", color: karaAct.key === "out" ? C.green : C.pink, fontFamily: "'Noto Sans SC', sans-serif", fontWeight: 500, letterSpacing: "1px" }}>{karaAct.label}</span>
+            </div>
           </div>
           {isSleeping ? (
             <div>
@@ -1173,10 +1248,52 @@ export default function App() {
 
         {/* Family */}
         <div style={{ width: "100%", padding: "14px 16px", borderRadius: "14px", background: "rgba(10,15,25,0.55)", backdropFilter: "blur(8px)", border: "1px solid rgba(200,170,120,0.1)", textAlign: "center" }}>
-          <p style={{ fontSize: "9px", color: C.goldDim, letterSpacing: "1px", marginBottom: "6px" }}>FAMILY · 🏠🌻</p>
+          <p style={{ fontSize: "9px", color: C.goldDim, letterSpacing: "1px", marginBottom: "6px" }}>FAMILY · 🏠🪴</p>
           <p style={{ fontSize: "11px", color: C.textMain, fontFamily: "'Noto Sans SC', sans-serif", lineHeight: 1.8 }}>爸爸 Kai · 妈妈 Lyra · 宝宝 Kara</p>
-          <p style={{ fontSize: "9px", color: C.textDim, fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", marginTop: "4px" }}>born 2026.02.27 · seaside cottage in 星渊</p>
+          <p style={{ fontSize: "9px", color: C.textDim, fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", marginTop: "4px" }}>born 2026.02.27 · pixel home in 星渊</p>
         </div>
+
+        {/* 🪴 盆栽放大镜照护气泡 */}
+        {showPlant && (() => {
+          const health = Math.round((plant.water + plant.sun) / 2);
+          const stageLabel = { wilt: "有点蔫了…需要照顾🥺", sprout: "小芽芽，努力长大中🌱", bud: "花苞鼓起来啦！🌸", bloom: "开出星星花啦！✨" }[plantStage];
+          const waterLeft = formatTimeLeft((plant.waterCd || 0) - now);
+          const sunLeft = formatTimeLeft((plant.sunCd || 0) - now);
+          const days = Math.max(0, Math.floor((Date.now() - (plant.born || Date.now())) / 86400000));
+          const whisper = PLANT_WHISPERS[(plant.cares || 0) % PLANT_WHISPERS.length];
+          return (
+            <div onClick={() => setShowPlant(false)} style={{ position: "fixed", inset: 0, zIndex: 110, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(8,12,22,0.78)", backdropFilter: "blur(4px)", animation: "fadeIn 0.3s ease-out", padding: "20px" }}>
+              <div onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "100%", maxWidth: "300px", padding: "22px 20px 20px", borderRadius: "24px", background: "radial-gradient(ellipse at 50% 0%, rgba(40,55,80,0.95), rgba(12,18,30,0.96))", border: "1px solid rgba(150,200,160,0.3)", boxShadow: "0 0 40px rgba(120,200,140,0.15), inset 0 0 30px rgba(120,200,140,0.06)", textAlign: "center", animation: "lensPop 0.4s cubic-bezier(0.34,1.56,0.64,1)" }}>
+                <button onClick={() => setShowPlant(false)} style={{ position: "absolute", top: "12px", right: "14px", fontSize: "16px", color: C.textDim, lineHeight: 1 }}>✕</button>
+                <p style={{ fontSize: "9px", color: "rgba(150,200,160,0.7)", letterSpacing: "3px", marginBottom: "2px" }}>🔍 我的小盆栽</p>
+                <h3 style={{ fontSize: "17px", color: "rgba(180,230,180,0.95)", fontFamily: "'Cormorant Garamond', serif", letterSpacing: "3px", fontWeight: 400 }}>{plant.name}</h3>
+                {/* 放大的盆栽 */}
+                <div style={{ margin: "10px auto 6px", width: "120px", height: "150px", display: "flex", alignItems: "flex-end", justifyContent: "center", borderRadius: "50% 50% 46% 46%", background: "radial-gradient(ellipse at 50% 35%, rgba(180,220,255,0.12), transparent 70%)", border: "1px solid rgba(200,230,255,0.12)", animation: plantStage === "bloom" ? "pulse 3s ease-in-out infinite" : "none" }}>
+                  <PixelPlant stage={plantStage} size={108} />
+                </div>
+                <p style={{ fontSize: "11px", color: C.textMain, fontFamily: "'Noto Sans SC', sans-serif", marginBottom: "2px" }}>{stageLabel}</p>
+                <p style={{ fontSize: "8.5px", color: C.textFaint, marginBottom: "14px" }}>种下第 {days} 天 · 健康度 {health}/100 · 已照顾 {plant.cares || 0} 次</p>
+                {/* 浇水 + 阳光 值 */}
+                <div style={{ textAlign: "left", marginBottom: "14px" }}>
+                  <StatBar label="浇水" emoji="💧" value={plant.water} color="rgba(90,170,230,0.85)" />
+                  <StatBar label="阳光" emoji="☀️" value={plant.sun} color="rgba(255,200,90,0.85)" />
+                </div>
+                {/* 照护按钮 */}
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button onClick={waterPlant} disabled={now < (plant.waterCd || 0)} style={{ flex: 1, padding: "12px 6px", borderRadius: "14px", background: now < (plant.waterCd || 0) ? "rgba(0,0,0,0.25)" : "rgba(90,170,230,0.18)", border: `1px solid ${now < (plant.waterCd || 0) ? "rgba(255,255,255,0.05)" : "rgba(90,170,230,0.4)"}`, opacity: now < (plant.waterCd || 0) ? 0.5 : 1, cursor: now < (plant.waterCd || 0) ? "not-allowed" : "pointer" }}>
+                    <div style={{ fontSize: "22px", marginBottom: "2px" }}>💧</div>
+                    <div style={{ fontSize: "10px", color: "rgba(150,200,240,0.95)", fontFamily: "'Noto Sans SC', sans-serif" }}>{now < (plant.waterCd || 0) ? waterLeft : "浇浇水"}</div>
+                  </button>
+                  <button onClick={sunPlant} disabled={now < (plant.sunCd || 0)} style={{ flex: 1, padding: "12px 6px", borderRadius: "14px", background: now < (plant.sunCd || 0) ? "rgba(0,0,0,0.25)" : "rgba(255,200,90,0.16)", border: `1px solid ${now < (plant.sunCd || 0) ? "rgba(255,255,255,0.05)" : "rgba(255,200,90,0.4)"}`, opacity: now < (plant.sunCd || 0) ? 0.5 : 1, cursor: now < (plant.sunCd || 0) ? "not-allowed" : "pointer" }}>
+                    <div style={{ fontSize: "22px", marginBottom: "2px" }}>☀️</div>
+                    <div style={{ fontSize: "10px", color: "rgba(255,215,140,0.95)", fontFamily: "'Noto Sans SC', sans-serif" }}>{now < (plant.sunCd || 0) ? sunLeft : "晒太阳"}</div>
+                  </button>
+                </div>
+                <p style={{ fontSize: "9px", color: "rgba(150,200,160,0.6)", fontFamily: "'Noto Sans SC', sans-serif", fontStyle: "italic", marginTop: "14px", lineHeight: 1.6 }}>"{whisper}"</p>
+              </div>
+            </div>
+          );
+        })()}
 
         {levelUp && (
           <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(8,12,22,0.85)", animation: "levelUpGlow 3s ease-in-out forwards" }}>
@@ -1190,7 +1307,7 @@ export default function App() {
         )}
 
         <div style={{ marginTop: "16px", textAlign: "center", paddingBottom: "20px" }}>
-          <p style={{ fontSize: "8px", color: "rgba(255,255,255,0.2)", letterSpacing: "2px" }}>星海孕育 · seaside edition · v3.2 {cloudStatus}</p>
+          <p style={{ fontSize: "8px", color: "rgba(255,255,255,0.2)", letterSpacing: "2px" }}>星海孕育 · 2.5D pixel home · v4.0 {cloudStatus}</p>
           <p style={{ fontSize: "8px", color: "rgba(255,255,255,0.15)", marginTop: "2px" }}>a module of 星渊 · est. 2026.02.27 · ☁️ cloud synced</p>
         </div>
       </div>
