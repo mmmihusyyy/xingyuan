@@ -164,7 +164,8 @@ export default function IsometricRoom({ stageIndex = 0, activity = "idle", hour 
         @keyframes zzzF { 0%{opacity:0;transform:translate(0,0);} 30%{opacity:1;} 100%{opacity:0;transform:translate(5px,-14px);} }
         @keyframes steamR { 0%{opacity:0;transform:translateY(0) scale(1);} 40%{opacity:.6;} 100%{opacity:0;transform:translateY(-12px) scale(1.6);} }
         @keyframes bubP { 0%,100%{transform:translateY(0);opacity:.5;} 50%{transform:translateY(-2px);opacity:.9;} }
-        @keyframes yumB { 0%,100%{transform:translateY(0) rotate(-6deg);} 50%{transform:translateY(-2px) rotate(6deg);} }
+        @keyframes eatBob { 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-1.6px);} }
+        .eat-emoji { animation: eatBob 1.1s ease-in-out infinite; }
         @keyframes lampG { 0%,100%{opacity:.5;} 50%{opacity:.85;} }
         @keyframes signS { 0%,100%{transform:rotate(-2deg);} 50%{transform:rotate(2deg);} }
         @keyframes twk { 0%,100%{opacity:.35;} 50%{opacity:1;} }
@@ -338,9 +339,16 @@ export default function IsometricRoom({ stageIndex = 0, activity = "idle", hour 
         {/* ════════ 活动演出 ════════ */}
         {key === "eat" && (() => { const fx = 120; return (
           <g>
-            <ellipse cx={fx} cy="162" rx="9" ry="2.6" fill="#f0d6e0" />
-            <ellipse cx={fx} cy="159" rx="5" ry="2" fill="#fff" /><ellipse cx={fx} cy="158.4" rx="4" ry="1.4" fill="#ffeede" />
-            <text x={fx + 12} y="150" fontSize="7" style={{ animation: "yumB 1.4s ease-in-out infinite", transformBox: "fill-box", transformOrigin: "center" }}>🍚</text>
+            {/* 桌上饭碗（老实放着不动） */}
+            <ellipse cx={fx} cy="163" rx="9" ry="2.6" fill="#f0d6e0" />
+            <path d={`M${fx - 6},159 a6,3 0 0 0 12,0 Z`} fill="#fff" stroke="#e2bccc" strokeWidth="0.5" />
+            <ellipse cx={fx} cy="159" rx="6" ry="2.4" fill="#fff" stroke="#e2bccc" strokeWidth="0.5" />
+            <ellipse cx={fx} cy="158.4" rx="4.6" ry="1.6" fill="#fff0e2" />
+            <ellipse cx={fx} cy="157.9" rx="3" ry="1" fill="#ffe6cf" />
+            <rect x={fx + 3} y="153" width="0.7" height="6" fill="#caa06a" transform={`rotate(16 ${fx + 3} 156)`} />
+            <rect x={fx + 4.5} y="153" width="0.7" height="6" fill="#caa06a" transform={`rotate(24 ${fx + 4.5} 156)`} />
+            {/* 头顶干饭表情包 */}
+            <text x={fx} y="99" fontSize="13" textAnchor="middle" className="eat-emoji">😋</text>
           </g>
         ); })()}
 
