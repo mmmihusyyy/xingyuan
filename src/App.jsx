@@ -627,6 +627,7 @@ function getAutonomousPose(text, isSleeping, hour) {
   if (/书|学习|认字/.test(text || "")) return "desk";
   if (/窗|海|散步/.test(text || "")) return "window";
   if ((hour >= 8 && hour < 10) || (hour >= 13 && hour < 14)) return "computer";
+  if ((hour >= 10 && hour < 11) || (hour >= 16 && hour < 17)) return "toys";
   return "idle";
 }
 

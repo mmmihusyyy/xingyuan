@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import "./KaraPixelHome.css";
 
 const POSES = {
@@ -13,6 +14,14 @@ const POSES = {
   center: { x: 50, y: 73 },
 };
 
+const WANDER_ROUTE = [
+  { x: 47, y: 75 },
+  { x: 38, y: 82 },
+  { x: 54, y: 82 },
+  { x: 68, y: 78 },
+  { x: 57, y: 70 },
+];
+
 export default function KaraPixelHome({
   isSleeping,
   stage,
@@ -25,8 +34,40 @@ export default function KaraPixelHome({
 }) {
   const isBedPose = isSleeping || pose === "bed";
   const isComputerPose = !isBedPose && pose === "computer";
-  const currentPose = POSES[isBedPose ? "bed" : pose] || POSES.idle;
-  const roomHint = isBedPose ? "睡觉中" : isComputerPose ? "玩电脑中" : "自主生活中";
+  const isToyPose = !isBedPose && pose === "toys";
+  const [wanderStep, setWanderStep] = useState(0);
+  const [isWalking, setIsWalking] = useState(false);
+  const isWandering = pose === "idle" && isWalking;
+
+  useEffect(() => {
+    if (pose !== "idle" || isBedPose) return undefined;
+    let stopWalking;
+    const timer = setInterval(() => {
+      setIsWalking(true);
+      setWanderStep(step => (step + 1) % WANDER_ROUTE.length);
+      clearTimeout(stopWalking);
+      stopWalking = setTimeout(() => setIsWalking(false), 950);
+    }, 5200);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(stopWalking);
+    };
+  }, [pose, isBedPose]);
+
+  const currentPose = isBedPose
+    ? POSES.bed
+    : pose === "idle"
+      ? WANDER_ROUTE[wanderStep]
+      : POSES[pose] || POSES.idle;
+  const roomHint = isBedPose
+    ? "睡觉中"
+    : isComputerPose
+      ? "玩电脑中"
+      : isToyPose
+        ? "玩玩具中"
+        : isWandering
+          ? "到处走走中"
+          : "自主生活中";
 
   return (
     <section className={`kara-pixel-card ${isBedPose ? "is-sleeping" : ""}`}>
@@ -44,7 +85,7 @@ export default function KaraPixelHome({
         <div className="kara-room-shade" />
 
         <div
-          className={`kara-sprite-wrap ${isBedPose ? "is-napping" : ""} ${isComputerPose ? "is-computing" : ""}`}
+          className={`kara-sprite-wrap ${isBedPose ? "is-napping" : ""} ${isComputerPose ? "is-computing" : ""} ${isToyPose ? "is-playing" : ""} ${isWandering ? "is-walking" : ""}`}
           style={{ "--kara-x": `${currentPose.x}%`, "--kara-y": `${currentPose.y}%` }}
         >
           {showBubble && bubbleText && <div className="kara-speech" aria-live="polite">{bubbleText}</div>}
@@ -52,6 +93,8 @@ export default function KaraPixelHome({
           {isBedPose && <span className="kara-sleep-blanket" aria-hidden="true" />}
           {isBedPose && <span className="kara-zzz">Z z z</span>}
           {isComputerPose && <span className="kara-typing" aria-hidden="true">⌨ ···</span>}
+          {isToyPose && <span className="kara-toy" aria-hidden="true">🧸</span>}
+          {isToyPose && <span className="kara-play-sparkles" aria-hidden="true">✦</span>}
         </div>
 
         {isComputerPose && (
