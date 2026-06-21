@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import KaraPixelHome from "./KaraPixelHome";
+import { PixelSky } from "./PixelRoom";
 
 /* ═══════════════════════════════════════════
    星海孕育 · KARA  v3.2
