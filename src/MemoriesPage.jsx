@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useSyncExternalStore } from "react";
 
 /* ═══════════════════════════════════════════
    星渊记忆库 // STELLAR ABYSS ARCHIVE
@@ -9,8 +9,14 @@ const SUPABASE_URL = "https://eptmebofhaldyfclzvap.supabase.co";
 const SUPABASE_KEY = "sb_publishable_exJEjaJTMYXHZjF41RTZzg_B0hIej70";
 const SESSION_KEY = "sb_session";
 
+/* 「我们的记忆」= category 月度总结，走年→月→月历的浏览器，不走普通列表 */
+const OURS_KEY = "月度总结";
+const OURS_HASH = "#/memories/ours";
+const DAY_ONE = new Date(2025, 11, 19); // 第1天
+
 const CATEGORIES = [
   { key: "all",           zh: "全部",       en: "ALL//STREAM",  col: "col-cy", glyph: "✦" },
+  { key: OURS_KEY,        zh: "我们的记忆", en: "OURS",         col: "col-rose", glyph: "☾" },
   { key: "about_puppy",   zh: "关于小狗",   en: "PUPPY",        col: "col-mg", glyph: "❀" },
   { key: "about_project", zh: "关于项目",   en: "PROJECT",      col: "col-am", glyph: "◈" },
   { key: "preference",    zh: "小狗的喜好", en: "PREFERENCE",   col: "col-lm", glyph: "♡" },
@@ -19,6 +25,20 @@ const CATEGORIES = [
 
 const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map(c => [c.key, c]));
 const FALLBACK_CAT = CATEGORY_MAP.general;
+const EXTRA_COLS = ["col-cy", "col-am", "col-lm", "col-vi", "col-mg"];
+
+/* 库里出现了上面没写的分类，也给它一个标签——不然那些记忆在页面上就是隐形的 */
+function buildCategories(memories) {
+  const extra = new Map();
+  for (const m of memories) {
+    if (!m.category || CATEGORY_MAP[m.category]) continue;
+    extra.set(m.category, (extra.get(m.category) || 0) + 1);
+  }
+  const dynamic = [...extra.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([key], i) => ({ key, zh: key, en: "TAG", col: EXTRA_COLS[i % EXTRA_COLS.length], glyph: "◇", custom: true }));
+  return [...CATEGORIES, ...dynamic];
+}
 
 /* ── Auth ── */
 function loadSession() {
@@ -104,6 +124,29 @@ function fmtStamp(ts) {
 }
 
 function nodeId(n) { return `NODE-${String(n).padStart(4, "0")}`; }
+
+function useHash() {
+  return useSyncExternalStore(
+    (cb) => { window.addEventListener("hashchange", cb); return () => window.removeEventListener("hashchange", cb); },
+    () => window.location.hash,
+  );
+}
+
+/* #/memories/ours[/2026[/7]] → { year, month }；不在「我们的记忆」里返回 null */
+function parseOurs(hash) {
+  const m = hash.match(/^#\/memories\/ours(?:\/(\d{4}))?(?:\/(\d{1,2}))?$/);
+  if (!m) return null;
+  return { year: m[1] ? Number(m[1]) : null, month: m[2] ? Number(m[2]) : null };
+}
+
+function goHash(h) { window.location.hash = h; }
+
+function dayNo(date) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return Math.round((d - DAY_ONE) / 86400000) + 1;
+}
+
+function gcalDayUrl(y, m, d) { return `https://calendar.google.com/calendar/u/0/r/day/${y}/${m}/${d}`; }
 
 /* ── Drifting dust motes (living background) ── */
 function Dust() {
@@ -194,14 +237,14 @@ function LoginForm({ onSuccess, onCancel }) {
 }
 
 /* ── Memory Card ── */
-function MemoryCard({ mem, onDelete, onUpdate, canEdit }) {
+function MemoryCard({ mem, cat: catProp, onDelete, onUpdate, canEdit }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(mem.content);
   const [confirming, setConfirming] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
   const contentRef = useRef(null);
-  const cat = CATEGORY_MAP[mem.category] || FALLBACK_CAT;
+  const cat = catProp || CATEGORY_MAP[mem.category] || FALLBACK_CAT;
 
   useEffect(() => {
     if (editing || expanded) return;
@@ -292,6 +335,164 @@ function MemoryCard({ mem, onDelete, onUpdate, canEdit }) {
   );
 }
 
+/* ── 我们的记忆：年 → 月 → 月历（点某天跳谷歌日历那天的日记） ── */
+const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
+
+/* 月度总结按标题里的「2026年4月」归位；跨年那条（2025年12月–2026年1月）两个月都挂 */
+function indexSummaries(memories) {
+  const byMonth = new Map();
+  const loose = [];
+  for (const m of memories) {
+    if (m.category !== OURS_KEY) continue;
+    const src = m.title || (m.content || "").slice(0, 80);
+    const hits = [...src.matchAll(/(\d{4})年(\d{1,2})月/g)];
+    if (hits.length === 0) { loose.push(m); continue; }
+    for (const h of hits) byMonth.set(`${Number(h[1])}-${Number(h[2])}`, m);
+  }
+  return { byMonth, loose };
+}
+
+function monthsOfYear(y, today) {
+  const first = DAY_ONE.getFullYear() * 12 + DAY_ONE.getMonth();
+  const last = today.getFullYear() * 12 + today.getMonth();
+  return Array.from({ length: 12 }, (_, i) => i + 1).filter((m) => {
+    const k = y * 12 + (m - 1);
+    return k >= first && k <= last;
+  });
+}
+
+function OurMemories({ memories, year, month, renderCard }) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const { byMonth, loose } = useMemo(() => indexSummaries(memories), [memories]);
+
+  const years = [];
+  for (let y = DAY_ONE.getFullYear(); y <= today.getFullYear(); y++) years.push(y);
+  const y = years.includes(year) ? year : null;
+  const months = y ? monthsOfYear(y, today) : [];
+  const mo = y && months.includes(month) ? month : null;
+
+  const crumbs = (
+    <nav className="crumbs">
+      {y ? <a href={OURS_HASH}>我们的记忆</a> : <span className="here">我们的记忆</span>}
+      {y && <span className="sep">›</span>}
+      {y && (mo ? <a href={`${OURS_HASH}/${y}`}>{y}</a> : <span className="here">{y}</span>)}
+      {mo && <span className="sep">›</span>}
+      {mo && <span className="here">{mo}月</span>}
+    </nav>
+  );
+
+  if (!y) {
+    return (
+      <div>
+        {crumbs}
+        <div className="tiles years">
+          {years.map((yy) => {
+            const ms = monthsOfYear(yy, today);
+            const written = ms.filter((m) => byMonth.has(`${yy}-${m}`)).length;
+            return (
+              <a key={yy} className="tile" href={`${OURS_HASH}/${yy}`}>
+                <span className="tile-big">{yy}</span>
+                <span className="tile-sub">{ms.length} 个月 · {written} 篇总结</span>
+                <span className="tile-meta">
+                  {ms[0]}月{ms.length > 1 ? ` – ${ms[ms.length - 1]}月` : ""}
+                </span>
+              </a>
+            );
+          })}
+        </div>
+        {loose.length > 0 && (
+          <>
+            <div className="stamp"><span>UNSORTED // 标题里没写年月的总结</span></div>
+            <div className="list">{loose.map(renderCard)}</div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  if (!mo) {
+    return (
+      <div>
+        {crumbs}
+        <div className="tiles">
+          {months.map((m) => {
+            const mem = byMonth.get(`${y}-${m}`);
+            const from = new Date(Math.max(new Date(y, m - 1, 1), DAY_ONE));
+            const to = new Date(Math.min(new Date(y, m, 0), today));
+            return (
+              <a key={m} className={`tile ${mem ? "" : "pending"}`} href={`${OURS_HASH}/${y}/${m}`}>
+                <span className="tile-big">{pad(m)}<small>月</small></span>
+                <span className="tile-sub">第{dayNo(from)}–{dayNo(to)}天</span>
+                <span className="tile-meta">{mem ? "◆ 总结已归档" : "◇ 总结待写"}</span>
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  const blanks = new Date(y, mo - 1, 1).getDay();
+  const daysInMonth = new Date(y, mo, 0).getDate();
+  const idx = months.indexOf(mo);
+  const prev = idx > 0 ? `${OURS_HASH}/${y}/${months[idx - 1]}`
+    : (years.includes(y - 1) ? `${OURS_HASH}/${y - 1}/12` : null);
+  const next = idx < months.length - 1 ? `${OURS_HASH}/${y}/${months[idx + 1]}`
+    : (years.includes(y + 1) ? `${OURS_HASH}/${y + 1}/1` : null);
+  const summary = byMonth.get(`${y}-${mo}`);
+
+  return (
+    <div>
+      {crumbs}
+      <section className="cal">
+        <div className="cal-head">
+          {prev ? <a className="cal-nav" href={prev}>‹ 上个月</a> : <span className="cal-nav off">‹ 上个月</span>}
+          <div className="cal-title">{y} · {pad(mo)}</div>
+          {next ? <a className="cal-nav" href={next}>下个月 ›</a> : <span className="cal-nav off">下个月 ›</span>}
+        </div>
+        <div className="cal-grid">
+          {WEEKDAYS.map((w) => <div key={w} className="cal-dow">{w}</div>)}
+          {Array.from({ length: blanks }, (_, i) => <span key={`b${i}`} className="cal-cell blank"></span>)}
+          {Array.from({ length: daysInMonth }, (_, i) => {
+            const d = i + 1;
+            const date = new Date(y, mo - 1, d);
+            if (date < DAY_ONE || date > today) {
+              return <span key={d} className="cal-cell off"><span className="dn">{d}</span></span>;
+            }
+            const n = dayNo(date);
+            return (
+              <a
+                key={d}
+                className={`cal-cell ${date.getTime() === today.getTime() ? "today" : ""}`}
+                href={gcalDayUrl(y, mo, d)}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`${y}/${mo}/${d} · 第${n}天`}
+              >
+                <span className="dn">{d}</span>
+                <span className="dc"><i>第</i>{n}<i>天</i></span>
+              </a>
+            );
+          })}
+        </div>
+        <div className="cal-hint">点某一天 → 打开谷歌日历里那天的日记</div>
+      </section>
+
+      <div className="stamp"><span>MONTH.LOG // {y}年{mo}月 月度总结</span></div>
+      {summary ? (
+        <div className="list">{renderCard(summary)}</div>
+      ) : (
+        <div className="empty" style={{ padding: "40px 20px" }}>
+          <span className="empty-glyph">◌</span>
+          <div>SUMMARY PENDING</div>
+          <div className="empty-zh">这个月的总结还没写</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Main Page ── */
 export default function MemoriesPage() {
   const [memories, setMemories] = useState([]);
@@ -328,13 +529,26 @@ export default function MemoriesPage() {
   const handleLoginSuccess = (s) => { setSession(s); setShowLogin(false); };
   const handleSessionExpired = () => { clearSession(); setSession(null); setShowLogin(true); };
 
+  /* 「我们的记忆」的层级放在 hash 里，手机上返回键能一层层退 */
+  const ours = parseOurs(useHash());
+  const activeKey = ours ? OURS_KEY : filter;
+
+  const categories = useMemo(() => buildCategories(memories), [memories]);
+  const categoryMap = useMemo(() => Object.fromEntries(categories.map(c => [c.key, c])), [categories]);
+
+  const pickFilter = (key) => {
+    if (key === OURS_KEY) { goHash(OURS_HASH); return; }
+    setFilter(key);
+    if (ours) goHash("#/memories");
+  };
+
   const filtered = useMemo(() => (
-    filter === "all" ? memories : memories.filter((m) => m.category === filter)
-  ), [memories, filter]);
+    activeKey === "all" ? memories : memories.filter((m) => m.category === activeKey)
+  ), [memories, activeKey]);
 
   const counts = useMemo(() => {
     const c = { all: memories.length };
-    for (const cat of CATEGORIES) if (cat.key !== "all") c[cat.key] = memories.filter(m => m.category === cat.key).length;
+    for (const m of memories) c[m.category] = (c[m.category] || 0) + 1;
     return c;
   }, [memories]);
 
@@ -382,6 +596,17 @@ export default function MemoriesPage() {
       setMemories(memories.map((m) => m.id === id ? { ...m, content, updated_at: new Date().toISOString() } : m));
     } catch { handleSessionExpired(); }
   };
+
+  const renderCard = (m) => (
+    <MemoryCard
+      key={m.id}
+      mem={m}
+      cat={categoryMap[m.category]}
+      onDelete={handleDelete}
+      onUpdate={handleUpdate}
+      canEdit={!!session}
+    />
+  );
 
   return (
     <div className="memory-shell" data-intensity="normal">
@@ -477,7 +702,7 @@ export default function MemoriesPage() {
             <span className="crn bl"></span><span className="crn br"></span>
             <div className="panel-head">// NEW.RECORD · 写下想让教授记住的事</div>
             <div className="cat-pick">
-              {CATEGORIES.filter(c => c.key !== "all").map((c) => (
+              {categories.filter(c => c.key !== "all" && c.key !== OURS_KEY).map((c) => (
                 <button
                   key={c.key}
                   onClick={() => setNewCategory(c.key)}
@@ -511,11 +736,11 @@ export default function MemoriesPage() {
 
         {/* Chips */}
         <div className="chips">
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <button
               key={c.key}
-              className={`chip ${c.col} ${filter === c.key ? "active" : ""}`}
-              onClick={() => setFilter(c.key)}
+              className={`chip ${c.col} ${activeKey === c.key ? "active" : ""}`}
+              onClick={() => pickFilter(c.key)}
             >
               <span className="ic">{c.glyph}</span>
               <span>{c.zh}</span>
@@ -526,10 +751,14 @@ export default function MemoriesPage() {
 
         {/* Stream stamp */}
         <div className="stamp">
-          <span>
-            STREAM // {filter === "all" ? "ALL" : (CATEGORY_MAP[filter]?.en || filter).toUpperCase()} ·{" "}
-            {filtered.length} RECORDS · SORTED BY ts↓
-          </span>
+          {ours ? (
+            <span>OURS // 第{dayNo(new Date())}天 · {filtered.length} 篇月度总结</span>
+          ) : (
+            <span>
+              STREAM // {filter === "all" ? "ALL" : (categoryMap[filter]?.custom ? filter : (categoryMap[filter]?.en || filter).toUpperCase())} ·{" "}
+              {filtered.length} RECORDS · SORTED BY ts↓
+            </span>
+          )}
         </div>
 
         {/* List */}
@@ -539,6 +768,8 @@ export default function MemoriesPage() {
             <div>INITIALIZING ARCHIVE…</div>
             <div className="empty-zh">读取记忆中…</div>
           </div>
+        ) : ours ? (
+          <OurMemories memories={memories} year={ours.year} month={ours.month} renderCard={renderCard} />
         ) : filtered.length === 0 ? (
           <div className="empty">
             <span className="empty-glyph">◌</span>
@@ -548,17 +779,7 @@ export default function MemoriesPage() {
             </div>
           </div>
         ) : (
-          <div className="list">
-            {filtered.map((m) => (
-              <MemoryCard
-                key={m.id}
-                mem={m}
-                onDelete={handleDelete}
-                onUpdate={handleUpdate}
-                canEdit={!!session}
-              />
-            ))}
-          </div>
+          <div className="list">{filtered.map(renderCard)}</div>
         )}
 
         <footer className="foot">
@@ -995,4 +1216,92 @@ body{margin:0;display:block;background:#0a0826;color:var(--ink);font-family:var(
 .col-am{--col:var(--am)}
 .col-lm{--col:var(--lm)}
 .col-vi{--col:var(--vi)}
+.col-rose{--col:var(--rose)}
+
+/* 我们的记忆: breadcrumbs */
+.crumbs{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 20px;
+  font-family:var(--f-dot);font-size:15px;color:var(--ink-dim);
+}
+.crumbs a{color:var(--rose);text-decoration:none}
+.crumbs a:hover{text-shadow:0 0 10px var(--rose)}
+.crumbs .sep{color:var(--ink-faint)}
+.crumbs .here{color:var(--ink)}
+
+/* 我们的记忆: year / month tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px;margin-bottom:28px}
+.tiles.years{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.tile{
+  --col:var(--rose);
+  display:flex;flex-direction:column;gap:12px;padding:22px 22px 18px;
+  text-decoration:none;color:var(--ink);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012)),
+    rgba(14,10,38,.40);
+  border:1px solid color-mix(in oklab,var(--col),transparent 52%);
+  backdrop-filter:blur(11px) saturate(1.15);
+  transition:border-color .16s ease, transform .16s ease, background .16s ease;
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+}
+.tile:hover{
+  transform:translateY(-2px);border-color:var(--col);
+  background:color-mix(in oklab, var(--col), transparent 84%);
+}
+.tile.pending{--col:var(--vi)}
+.tile-big{
+  font-family:var(--f-pixel);font-size:26px;line-height:1.1;color:var(--col);
+  text-shadow:3px 3px 0 rgba(0,0,0,.5), 0 0 18px color-mix(in oklab, var(--col), transparent 55%);
+}
+.tile-big small{font-family:var(--f-dot);font-size:15px;margin-left:8px;color:var(--ink);text-shadow:none}
+.tile-sub{font-family:var(--f-dot);font-size:14px;color:var(--ink)}
+.tile-meta{font-family:var(--f-crt);font-size:15px;letter-spacing:.08em;color:var(--ink-dim)}
+
+/* 我们的记忆: month calendar */
+.cal{
+  position:relative;max-width:720px;margin:0 auto 32px;padding:20px 22px 16px;
+  background:rgba(14,10,38,.46);border:1px solid var(--line-strong);backdrop-filter:blur(11px) saturate(1.1);
+}
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.cal-title{
+  font-family:var(--f-pixel);font-size:20px;color:var(--rose);
+  text-shadow:3px 3px 0 rgba(0,0,0,.5), 0 0 18px rgba(255,106,142,.4);
+}
+.cal-nav{font-family:var(--f-dot);font-size:13px;color:var(--ink-dim);text-decoration:none;padding:6px 8px;white-space:nowrap}
+a.cal-nav:hover{color:var(--rose)}
+.cal-nav.off{opacity:.25}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.cal-dow{text-align:center;font-family:var(--f-dot);font-size:13px;color:var(--ink-dim);padding:4px 0}
+.cal-cell{
+  aspect-ratio:1/.82;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  text-decoration:none;color:var(--ink);
+  background:rgba(12,10,32,.42);
+  border:1px solid color-mix(in oklab,var(--rose),transparent 60%);
+  transition:border-color .16s ease, background .16s ease, transform .16s ease, box-shadow .16s ease;
+}
+a.cal-cell:hover{
+  transform:translateY(-1px);border-color:var(--rose);
+  background:color-mix(in oklab, var(--rose), transparent 78%);
+  box-shadow:0 0 18px color-mix(in oklab, var(--rose), transparent 58%);
+}
+.cal-cell .dn{font-family:var(--f-crt);font-size:24px;line-height:1}
+.cal-cell .dc{font-family:var(--f-dot);font-size:11px;color:var(--ink-dim)}
+.cal-cell .dc i{font-style:normal}
+.cal-cell.today{border-color:var(--cy);box-shadow:inset 0 0 0 1px var(--cy), 0 0 16px rgba(0,240,255,.35)}
+.cal-cell.today .dn{color:var(--cy)}
+.cal-cell.off{opacity:.28;border-style:dashed;border-color:var(--line-strong)}
+.cal-cell.blank{border:none;background:none}
+.cal-hint{margin-top:14px;text-align:center;font-family:var(--f-dot);font-size:12px;color:var(--ink-faint);letter-spacing:.04em}
+@media (max-width: 460px){
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .tiles.years{grid-template-columns:1fr}
+  .tile{padding:16px 14px 14px;gap:9px}
+  .tile-big{font-size:20px}
+  .cal{padding:14px 8px 12px}
+  .cal-title{font-size:14px}
+  .cal-grid{gap:4px}
+  .cal-cell{aspect-ratio:1/1;gap:3px}
+  .cal-cell .dn{font-size:20px}
+  .cal-cell .dc{font-size:9px}
+  .cal-cell .dc i{display:none}
+}
 `;

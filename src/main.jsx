@@ -25,7 +25,7 @@ function Router() {
 
   // Legacy hash-based routing fallback (old URLs xingyuan-roan / dist-lac-ten-73)
   if (hash === "#/gramophone") return <GramophonePage />;
-  if (hash === "#/memories") return <MemoriesPage />;
+  if (hash === "#/memories" || hash.startsWith("#/memories/")) return <MemoriesPage />;
   return <App />;
 }
 
